@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+.env
+*.venv
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+*.log
+
+# VS Code
+.vscode/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test and coverage
+.coverage
+htmlcov/
+.tox/
+.cache/
+.pytest_cache/
+
+# Pipenv
+Pipfile.lock
+
+# Virtualenv
+*.virtualenv
+
+# MyPy
+.mypy_cache/
+
+# AutoViz-Insight specific
+data/
+output/
+
+
+
+
+# uv package manager ignore
+.python-version
+pyproject.toml
+uv.lock
