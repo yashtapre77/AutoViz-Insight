@@ -1,11 +1,11 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime, timezone
 from app.models.token import RefreshToken
 
 
 class TokenRepository:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         self.db = db
 
 
