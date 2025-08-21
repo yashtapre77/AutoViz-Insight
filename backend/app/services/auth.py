@@ -2,16 +2,16 @@ from sqlalchemy.orm import Session
 from datetime import timedelta, datetime, timezone
 from app.core.config import settings
 from app.core.security import hash_password, verify_password, create_jwt_token
-from app.db.repositories.user_repo import UserRepository
-from app.db.repositories.token_repo import TokenRepository
-from app.db.models.user import User
+from app.services.user import UserServices
+from app.services.token import TokenServices
+from app.models.user import User
 
 
 class AuthService:
     def __init__(self, db: Session):
         self.db = db
-        self.users = UserRepository(db)
-        self.tokens = TokenRepository(db)
+        self.users = UserServices(db)
+        self.tokens = TokenServices(db)
 
 
     async def register_user(self, *, email: str, password: str, full_name: str | None) -> User:

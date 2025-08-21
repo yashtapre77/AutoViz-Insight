@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from app.models.token import RefreshToken
 
 
-class TokenRepository:
+class TokenServices:
     def __init__(self, db: Session):
         self.db = db
 

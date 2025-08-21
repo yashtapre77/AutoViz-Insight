@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.user import UserOut, UserCreate
 from app.schemas.auth import TokenPair, RefreshRequest
-from app.services.auth_service import AuthService
-from app.db.models.user import User 
+from app.services.auth import AuthService
+from app.models.user import User 
 from app.core.security import decode_jwt
-from app.services.user_service import UserRepository
-from app.services.token_service import TokenRepository
+from app.services.user import UserServices
+from app.services.token import TokenServices
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -16,7 +16,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 @router.post("/register", response_model=UserOut, status_code=201)
-async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
+async def register(payload: UserCreate, db: Session = Depends(get_db)):
     service = AuthService(db)
     try:
         user = await service.register_user(email=payload.email, password=payload.password, full_name=payload.full_name)
@@ -28,7 +28,7 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
     
 
 @router.post("/login", response_model=TokenPair)
-async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+async def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     service = AuthService(db)
     try:
         access, refresh = await service.authenticate(email=form.username, password=form.password)
@@ -42,7 +42,7 @@ async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
 
 
 @router.post("/refresh", response_model=TokenPair)
-async def refresh_tokens(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
+async def refresh_tokens(payload: RefreshRequest, db: Session = Depends(get_db)):
     service = AuthService(db)
     try:
         access, refresh = await service.refresh_tokens(refresh_token=payload.refresh_token)
@@ -54,14 +54,14 @@ async def refresh_tokens(payload: RefreshRequest, db: AsyncSession = Depends(get
     
 
 @router.get("/me", response_model=UserOut)
-async def read_me( token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db),):
+async def read_me( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db),):
     # Minimal inline validation to avoid circular deps; alternatively, use deps.get_current_user
     
     payload = decode_jwt(token)
     if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    repo = UserRepository(db)
+    repo = UserServices(db)
     user = await repo.get(int(payload["sub"]))
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
@@ -71,10 +71,10 @@ async def read_me( token: str = Depends(oauth2_scheme), db: AsyncSession = Depen
 
 
 @router.post("/logout", status_code=204)
-async def logout(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
+async def logout(payload: RefreshRequest, db: Session = Depends(get_db)):
 # Revoke the provided refresh token (stateless access tokens will expire on their own)
 
-    repo = TokenRepository(db)
+    repo = TokenServices(db)
     await repo.revoke(payload.refresh_token)
     await db.commit()
     return

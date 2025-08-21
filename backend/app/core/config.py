@@ -3,11 +3,11 @@ from pydantic import AnyUrl
 
 
 class Settings(BaseSettings):
-
+    APP_NAME: str = "Auto-Viz"
     API_STARTING_PATH: str = "/api"
 
     # Database
-    DATABASE_URL: AnyUrl
+    DATABASE_URL: str
 
     # JWT
     JWT_SECRET_KEY: str

@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from app.db.models.user import User
+from app.models.user import User
 from app.core.security import decode_jwt
 from fastapi import HTTPException, status
 
 
-class UserRepository:
+class UserServices:
     def __init__(self, db: Session):
         self.db = db
 
@@ -37,8 +37,8 @@ class UserRepository:
         if not payload or payload.get("type") != "access":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         user_id = payload.get("sub")
-        repo = UserRepository(self.db)
-        user = await repo.get(int(user_id))
+        # repo = UserServices(self.db)
+        user = await self.get(int(user_id))
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
         return user
