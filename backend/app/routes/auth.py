@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.schemas.user import UserOut, UserCreate
 from app.schemas.auth import TokenPair, RefreshRequest
@@ -12,23 +12,27 @@ from app.services.token import TokenServices
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
 @router.post("/register", response_model=UserOut, status_code=201)
-async def register(payload: UserCreate, db: Session = Depends(get_db)):
+async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
     service = AuthService(db)
+    print(service)
     try:
         user = await service.register_user(email=payload.email, password=payload.password, full_name=payload.full_name)
         await db.commit()
-        return user
+        await db.refresh(user)
+        print(user)
+        print(user.email)
+        return UserOut.model_validate(user, from_attributes=True)
     except ValueError as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
     
 
 @router.post("/login", response_model=TokenPair)
-async def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     service = AuthService(db)
     try:
         access, refresh = await service.authenticate(email=form.username, password=form.password)
@@ -42,7 +46,7 @@ async def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depen
 
 
 @router.post("/refresh", response_model=TokenPair)
-async def refresh_tokens(payload: RefreshRequest, db: Session = Depends(get_db)):
+async def refresh_tokens(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
     service = AuthService(db)
     try:
         access, refresh = await service.refresh_tokens(refresh_token=payload.refresh_token)
@@ -54,7 +58,7 @@ async def refresh_tokens(payload: RefreshRequest, db: Session = Depends(get_db))
     
 
 @router.get("/me", response_model=UserOut)
-async def read_me( token: str = Depends(oauth2_scheme), db: Session = Depends(get_db),):
+async def read_me( token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db),):
     # Minimal inline validation to avoid circular deps; alternatively, use deps.get_current_user
     
     payload = decode_jwt(token)
@@ -68,13 +72,20 @@ async def read_me( token: str = Depends(oauth2_scheme), db: Session = Depends(ge
     return user
 
 
-
-
 @router.post("/logout", status_code=204)
-async def logout(payload: RefreshRequest, db: Session = Depends(get_db)):
-# Revoke the provided refresh token (stateless access tokens will expire on their own)
+async def logout(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
+    try:
+        payload = decode_jwt(token)
+        if not payload or payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token")
 
-    repo = TokenServices(db)
-    await repo.revoke(payload.refresh_token)
-    await db.commit()
-    return
+        repo = TokenServices(db)
+        # Pass raw token string, not payload dict
+        await repo.revoke(token)
+        await db.commit()
+        return {"detail": "Logged out successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+
+

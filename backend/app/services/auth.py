@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta, datetime, timezone
 from app.core.config import settings
 from app.core.security import hash_password, verify_password, create_jwt_token
@@ -8,7 +8,7 @@ from app.models.user import User
 
 
 class AuthService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.users = UserServices(db)
         self.tokens = TokenServices(db)

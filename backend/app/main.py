@@ -3,6 +3,7 @@ from app.core.config import settings
 from app.routes.auth import router as auth_router
 from fastapi.middleware.cors import CORSMiddleware
 
+
 app = FastAPI(title=settings.APP_NAME)
 
 
