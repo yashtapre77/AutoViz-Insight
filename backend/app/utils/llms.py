@@ -1,13 +1,13 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
 import pandas as pd
-from app.core.config import settings
+# from app.core.config import settings
 
 # Initialize Gemini model
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",   
     temperature=0,
-    google_api_key=settings.GOOGLE_API_KEY_FLASH
+    google_api_key="AIzaSyAjR1juQNpAwtyBen79_rbu4zk2LZu4xfE"
 )
 
 
