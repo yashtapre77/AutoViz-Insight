@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Security
     BCRYPT_ROUNDS: int = 12
 
+    # Google API Key
+    GOOGLE_API_KEY_FLASH: str
+
 
     class Config:
         env_file = ".env"
