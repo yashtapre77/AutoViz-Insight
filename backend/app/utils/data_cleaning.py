@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from sklearn.impute import KNNImputer
+from llms import infer_column_type_llm, llm
 
 # -------------------------
 # 1. File Handling
@@ -21,20 +22,29 @@ def load_file(file_path: str) -> pd.DataFrame:
 # -------------------------
 # 2. Data Types & Formats
 # -------------------------
-def fix_data_types(df: pd.DataFrame) -> pd.DataFrame:
+# def fix_data_types(df: pd.DataFrame) -> pd.DataFrame:
+def fix_data_types(df: pd.DataFrame, llm) -> pd.DataFrame:
     for col in df.columns:
-        if df[col].dtype == object:
-            # Try convert to datetime
-            try:
-                df[col] = pd.to_datetime(df[col], errors="ignore")
-            except:
-                try: 
-                    # Try convert to numeric if possible
-                    df[col] = pd.to_numeric(df[col], errors="ignore")
-                except:
-                    pass
-                
+        
+        # If dtype still object, ask Gemini
+        if df[col].dtype == "object":
+            col_type = infer_column_type_llm(col, df[col], llm)
+
+            if col_type == "numeric":
+                df[col] = pd.to_numeric(df[col].str.replace(r"[^\d\.\-]", "", regex=True), errors="coerce")
+            elif col_type == "datetime":
+                df[col] = pd.to_datetime(df[col], errors="coerce", infer_datetime_format=True)
+            elif col_type == "boolean":
+                df[col] = df[col].map(
+                    {"yes": True, "no": False, "true": True, "false": False, "1": True, "0": False}
+                )
+            elif col_type in ["categorical", "id", "code"]:
+                df[col] = df[col].astype("category")
+            else:
+                df[col] = df[col].astype(str)
+
     return df
+
 
 
 # -------------------------
@@ -144,20 +154,7 @@ def fix_inconsistent_values(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # -------------------------
-# 7. Date/Time Handling
-# -------------------------
-def handle_datetime(df: pd.DataFrame) -> pd.DataFrame:
-    for col in df.columns:
-        if "date" in col.lower():
-            try:
-                df[col] = pd.to_datetime(df[col], errors="coerce")
-            except:
-                pass
-    return df
-
-
-# -------------------------
-# 8. Numerical Cleaning
+# 7. Numerical Cleaning
 # -------------------------
 def clean_numerical(df: pd.DataFrame) -> pd.DataFrame:
     for col in df.select_dtypes(include=["int64", "float64"]).columns:
@@ -166,7 +163,7 @@ def clean_numerical(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # -------------------------
-# 9. Text Cleaning
+# 8. Text Cleaning
 # -------------------------
 def clean_text(df: pd.DataFrame) -> pd.DataFrame:
     for col in df.select_dtypes(include="object").columns:
@@ -176,7 +173,7 @@ def clean_text(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # -------------------------
-# 10. Column/Feature Issues
+# 9. Column/Feature Issues
 # -------------------------
 def fix_columns(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
@@ -184,20 +181,7 @@ def fix_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # -------------------------
-# 11. Integrity Checks
-# -------------------------
-def integrity_checks(df: pd.DataFrame) -> pd.DataFrame:
-    # Example: Drop rows where end_date < start_date
-    date_cols = [c for c in df.columns if "date" in c]
-    if len(date_cols) >= 2:
-        start, end = date_cols[0], date_cols[1]
-        if pd.api.types.is_datetime64_any_dtype(df[start]) and pd.api.types.is_datetime64_any_dtype(df[end]):
-            df = df[df[end] >= df[start]]
-    return df
-
-
-# -------------------------
-# 12. Final Touch
+# 10. Final Touch
 # -------------------------
 def final_touch(df: pd.DataFrame) -> pd.DataFrame:
     df = df.reset_index(drop=True)
@@ -209,21 +193,22 @@ def final_touch(df: pd.DataFrame) -> pd.DataFrame:
 # -------------------------
 def clean_pipeline(file_path: str) -> pd.DataFrame:
     df = load_file(file_path)
+    df = fix_data_types(df, llm)
     df = handle_missing_data(df)
-    df = fix_data_types(df)
     df = remove_duplicates(df)
     df = handle_outliers(df)
     df = fix_inconsistent_values(df)
-    df = handle_datetime(df)
     df = clean_numerical(df)
     df = clean_text(df)
     df = fix_columns(df)
-    df = integrity_checks(df)
     df = final_touch(df)
     return df
 
 
 # Example usage
 if __name__ == "__main__":
-    cleaned_df = clean_pipeline("your_dataset.csv")
+    import os
+    os.chdir("A:/Projects/AutoViz-Insight/backend/app/utils")
+    cleaned_df = clean_pipeline("dataset1.csv")
+    cleaned_df.to_csv("output/cleaned_dataset1.csv", index=False)
     print(cleaned_df.head())
