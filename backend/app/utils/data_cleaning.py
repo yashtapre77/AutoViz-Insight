@@ -209,6 +209,6 @@ def clean_pipeline(file_path: str) -> pd.DataFrame:
 if __name__ == "__main__":
     import os
     os.chdir("A:/Projects/AutoViz-Insight/backend/app/utils")
-    cleaned_df = clean_pipeline("dataset1.csv")
+    cleaned_df = clean_pipeline("./output/dataset1.csv")
     cleaned_df.to_csv("output/cleaned_dataset1.csv", index=False)
     print(cleaned_df.head())

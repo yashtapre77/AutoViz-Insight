@@ -6,4 +6,8 @@ class AnalysisService:
     def __init__(self, db: AsyncSession):
         self.db = db
     
-    def clean_data(self, *, file_path:str):
+    def perform_analysis(self, *, requirement_id: str = None):
+        pass
+
+    def get_tableau_file(self, *, file_path:str):
+        pass
