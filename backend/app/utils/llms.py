@@ -9,7 +9,6 @@ llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",   
     temperature=0,
     google_api_key=settings.GOOGLE_API_KEY_FLASH
-    
 )
 
 
@@ -44,6 +43,7 @@ def get_graphs_suggestions_llm(col_names, user_query, llm):
         "Column names: {col_names}\n"
         "User query: {user_query}\n\n"
         "Suggest at least 6 graph types (choose only from: bar chart(rows), bar chart(columns), bar chart(side by side), stacked bar chart, lollipop chart, bubble chart, scatter plot, line chart, sparkline chart, circle (bubble) timeline, quadrant chart, dual line chart, bar and line chart, butterfly (tornado) chart, histogram, funnel chart, bump chart, dot plot, barbell chart, pie chart, donut chart, full stacked bar chart, treemap, waterfall chart, box plot, heatmap, area chart).\n"
+        "All the Graphs should be able to be plot in a single tableau dashboard.\n"
         "Return ONLY valid JSON with graph suggestions, where keys are graph names and values are objects containing x/y axis mapping.\n\n"
         "Example:\n"
         "{{\n"
@@ -58,7 +58,6 @@ def get_graphs_suggestions_llm(col_names, user_query, llm):
         "col_names": ", ".join(col_names),
         "user_query": user_query
     })
-
     # Extract text depending on LLM wrapper
     if hasattr(response, "content"):  
         raw_text = response.content
@@ -79,6 +78,20 @@ def get_graphs_suggestions_llm(col_names, user_query, llm):
 
     return parsed
 
+def generate_dashboard(df: pd.DataFrame, graph_suggestions: dict):
+    prompt_dashboard = ChatPromptTemplate.from_messages([
+        ("system", 
+        "You are a tableau expert. Based on the dataset columns and graph suggestions, generate a tableau dashboard file."),
+        ("human", 
+        "Column names: {col_names}\n"
+        "Graph suggestions: {graph_suggestions}\n\n"
+        "Generate a tableau dashboard file that includes all the suggested graphs.\n"
+        "Return ONLY the tableau file content as a base64 encoded string.")
+    ])
+    
+
+def tableau_file_generation():
+    pass
 
 
 if __name__ == "__main__":
@@ -86,4 +99,5 @@ if __name__ == "__main__":
     query = "I want to analyze how sales performance varies across regions and products, and see if discounts affect profitability."
     
     output = get_graphs_suggestions_llm(col_names=cols, user_query=query, llm=llm)
-    print(json.dumps(output, indent=2))
+    # print(json.dumps(output, indent=2))
+    print(output)
