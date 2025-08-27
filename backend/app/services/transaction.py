@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.analysis import Analysis_Requirement
+from sqlalchemy import select
 
 class TransactionService:
     def __init__(self, db: AsyncSession):
@@ -16,3 +17,7 @@ class TransactionService:
         await self.db.commit()
         await self.db.refresh(transaction)
         return transaction
+    
+    async def get_transaction(self, transaction_id: int) -> Analysis_Requirement:
+        result = await self.db.execute(select(Analysis_Requirement).where(Analysis_Requirement.id == transaction_id))
+        return result

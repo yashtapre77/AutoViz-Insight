@@ -27,7 +27,6 @@ class Analysis_Result(Base):
     requirement_id = Column(String, ForeignKey("Analysis_Requirement.id", ondelete="CASCADE"), nullable=False)
 
     
-    anlysis_report = Column(JSON, nullable=False)
     graph_suggestions = Column(JSON, nullable=True)   # will hold list of graphs suggested by LLM
     created_at = Column(DateTime, default=datetime.utcnow)
 
