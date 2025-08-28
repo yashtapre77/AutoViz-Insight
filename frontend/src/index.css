@@ -1,3 +1,62 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+
+:root {
+  /* Updated color tokens to match the design brief with light theme and cyan-based palette */
+  --background: oklch(1 0 0); /* Pure white background */
+  --foreground: oklch(0.3 0 0); /* Dark gray for text */
+  --card: oklch(0.98 0.01 180); /* Very light cyan tint for cards */
+  --card-foreground: oklch(0.35 0 0); /* Slightly lighter than foreground */
+  --popover: oklch(1 0 0); /* White popover background */
+  --popover-foreground: oklch(0.25 0.05 200); /* Cyan-tinted dark text */
+  --primary: oklch(0.35 0.08 200); /* Cyan-800 equivalent for primary actions */
+  --primary-foreground: oklch(1 0 0); /* White text on primary */
+  --secondary: oklch(0.75 0.15 100); /* Lime accent color */
+  --secondary-foreground: oklch(1 0 0); /* White text on secondary */
+  --muted: oklch(0.96 0.005 180); /* Very light gray with cyan hint */
+  --muted-foreground: oklch(0.45 0 0); /* Medium gray for muted text */
+  --accent: oklch(0.75 0.15 100); /* Lime accent matching secondary */
+  --accent-foreground: oklch(0.25 0.05 200); /* Cyan-tinted dark text */
+  --destructive: oklch(0.55 0.22 25); /* Red for destructive actions */
+  --destructive-foreground: oklch(1 0 0); /* White text on destructive */
+  --border: oklch(0.9 0.01 180); /* Light gray border with cyan hint */
+  --input: oklch(0.98 0.005 180); /* Very light background for inputs */
+  --ring: oklch(0.35 0.08 200 / 0.3); /* Semi-transparent primary for focus rings */
+  --radius: 0.5rem; /* Slightly smaller radius for modern look */
+}
+
+
+
+
+/* Custom animations for auth pages */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 78, 99, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(22, 78, 99, 0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}

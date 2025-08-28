@@ -20,6 +20,7 @@ import {
   Loader
 } from 'lucide-react';
 import DashboardCube from '../components/DashboardCube.jsx';
+import { Link } from 'react-router-dom';
 
 function Landing() {
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -62,11 +63,13 @@ function Landing() {
                 </p>
                 
                 {/* CTA Button */}
-                <button className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl text-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-blue-500/25">
-                  <Upload className="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
-                  Upload Your Data Now
-                  <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                </button>
+                <Link to="/login">
+                  <button className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl text-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-blue-500/25">
+                    <Upload className="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+                    Upload Your Data Now
+                    <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+                  </button>
+                </Link>
               </div>
               
               {/* Right Content - 3D Cube */}

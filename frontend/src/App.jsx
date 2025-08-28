@@ -1,17 +1,17 @@
-import { useState } from 'react'
-import DashboardCube from './components/DashboardCube'
-
-import { Canvas } from "@react-three/fiber";
 import Landing from './pages/Landing';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import { Routes, Route } from 'react-router-dom';
+
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
-    <>
-      {/* <Landing/> */}
-      <Login/>
-    </>
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+    </Routes>
+
   )
 }
 
