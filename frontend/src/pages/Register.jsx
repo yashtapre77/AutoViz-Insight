@@ -4,11 +4,12 @@ import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Label } from "../components/ui/label"
-import { Eye, EyeOff, Mail, Lock, LogIn } from "lucide-react"
+import { Eye, EyeOff, User, Mail, Lock, Sparkles } from "lucide-react"
 
-function Login() {
+function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
+    fullName: "",
     email: "",
     password: "",
   })
@@ -20,7 +21,7 @@ function Login() {
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 2000))
     setIsLoading(false)
-    console.log("Login data:", formData)
+    console.log("Registration data:", formData)
   }
 
   const handleInputChange = (field, value) => {
@@ -33,20 +34,38 @@ function Login() {
         <Card className="border-0 shadow-2xl bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center space-y-4 pb-8">
             <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center animate-pulse-glow">
-              <LogIn className="w-8 h-8 text-primary-foreground" />
+              <Sparkles className="w-8 h-8 text-primary-foreground" />
             </div>
             <div className="space-y-2">
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Welcome Back
+                Create Your Account
               </CardTitle>
               <CardDescription className="text-muted-foreground text-lg">
-                Sign in to continue your journey
+                Join us and start your journey today
               </CardDescription>
             </div>
           </CardHeader>
 
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-sm font-medium text-foreground">
+                  Full Name
+                </Label>
+                <div className="relative group">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5 transition-colors group-focus-within:text-primary" />
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={formData.fullName}
+                    onChange={(e) => handleInputChange("fullName", e.target.value)}
+                    className="pl-10 h-12 bg-input border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-foreground">
                   Email Address
@@ -74,7 +93,7 @@ function Login() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="Create a strong password"
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     className="pl-10 pr-10 h-12 bg-input border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
@@ -90,15 +109,6 @@ function Login() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <Link
-                  to="/forgot-password"
-                  className="text-primary hover:text-primary/80 transition-colors hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-
               <Button
                 type="submit"
                 disabled={isLoading}
@@ -107,22 +117,22 @@ function Login() {
                 {isLoading ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    <span>Signing In...</span>
+                    <span>Creating Account...</span>
                   </div>
                 ) : (
-                  "Sign In"
+                  "Create Account"
                 )}
               </Button>
             </form>
 
             <div className="text-center pt-4">
               <p className="text-muted-foreground">
-                Don't have an account?{" "}
+                Already have an account?{" "}
                 <Link
-                  to="/register"
+                  to="/login"
                   className="text-primary hover:text-primary/80 font-semibold transition-colors hover:underline"
                 >
-                  Create one now
+                  Sign in here
                 </Link>
               </p>
             </div>
@@ -133,4 +143,4 @@ function Login() {
   )
 }
 
-export default Login
+export default Register
