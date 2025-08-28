@@ -10,8 +10,8 @@ function DashboardCube() {
   // Auto-rotate the cube
   useFrame((state, delta) => {
     if (meshRef.current && !hovered) {
-      meshRef.current.rotation.x += delta * 0.2;
-      meshRef.current.rotation.y += delta * 0.3;
+      meshRef.current.rotation.x += delta * 0.15;
+      meshRef.current.rotation.y += delta * 0.25;
     }
   });
 
@@ -23,9 +23,8 @@ function DashboardCube() {
     const ctx = canvas.getContext('2d');
     
     // Background
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, 256, 256);
-    // #AEAEAE
     
     // Border
     ctx.strokeStyle = color;
@@ -35,7 +34,7 @@ function DashboardCube() {
     // Chart content based on type
     ctx.fillStyle = color;
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     
     switch (type) {
       case 'bar':
@@ -52,7 +51,7 @@ function DashboardCube() {
         const radius = 60;
         let startAngle = 0;
         const slices = [0.3, 0.25, 0.2, 0.15, 0.1];
-        const colors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
+        const colors = ['#00464B', '#006B73', '#10B981', '#F59E0B', '#EF4444'];
         
         slices.forEach((slice, index) => {
           const endAngle = startAngle + slice * 2 * Math.PI;
@@ -99,7 +98,7 @@ function DashboardCube() {
         for (let i = 0; i < 8; i++) {
           for (let j = 0; j < 8; j++) {
             const intensity = Math.random();
-            ctx.fillStyle = `rgba(59, 130, 246, ${intensity})`;
+            ctx.fillStyle = `rgba(0, 70, 75, ${intensity * 0.7})`;
             ctx.fillRect(30 + i * 24, 30 + j * 24, 20, 20);
           }
         }
@@ -115,7 +114,7 @@ function DashboardCube() {
         }
         ctx.lineTo(240, 200);
         ctx.closePath();
-        ctx.globalAlpha = 0.6;
+        ctx.globalAlpha = 0.4;
         ctx.fill();
         break;
     }
@@ -133,19 +132,20 @@ function DashboardCube() {
   };
 
   const materials = [
-    new THREE.MeshLambertMaterial({ map: createChartTexture('bar', '#3B82F6') }),
-    new THREE.MeshLambertMaterial({ map: createChartTexture('pie', '#8B5CF6') }),
+    new THREE.MeshLambertMaterial({ map: createChartTexture('bar', '#00464B') }),
+    new THREE.MeshLambertMaterial({ map: createChartTexture('pie', '#006B73') }),
     new THREE.MeshLambertMaterial({ map: createChartTexture('line', '#10B981') }),
     new THREE.MeshLambertMaterial({ map: createChartTexture('scatter', '#F59E0B') }),
-    new THREE.MeshLambertMaterial({ map: createChartTexture('heatmap', '#EF4444') }),
-    new THREE.MeshLambertMaterial({ map: createChartTexture('area', '#06B6D4') }),
+    new THREE.MeshLambertMaterial({ map: createChartTexture('heatmap', '#00464B') }),
+    new THREE.MeshLambertMaterial({ map: createChartTexture('area', '#006B73') }),
   ];
 
   return (
     <>
-      <OrbitControls enableZoom={false} enablePan={false} />
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 10, 5]} intensity={1} />
+      <OrbitControls enableZoom={false} enablePan={false} autoRotate={false} />
+      <ambientLight intensity={0.8} />
+      <directionalLight position={[10, 10, 5]} intensity={0.8} />
+      <directionalLight position={[-5, -5, -5]} intensity={0.3} />
       <mesh
         ref={meshRef}
         material={materials}
@@ -153,7 +153,7 @@ function DashboardCube() {
         onPointerOut={() => setHovered(false)}
         scale={hovered ? 1.1 : 1}
       >
-        <boxGeometry args={[2, 2, 2]} />
+        <boxGeometry args={[2.5, 2.5, 2.5]} />
       </mesh>
     </>
   );
