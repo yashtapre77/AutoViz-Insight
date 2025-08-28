@@ -11,6 +11,15 @@ llm = ChatGoogleGenerativeAI(
     google_api_key=settings.GOOGLE_API_KEY_FLASH
 )
 
+charts_list = [
+    "bar chart(rows)", "bar chart(columns)", "bar chart(side by side)", "stacked bar chart", 
+    "lollipop chart", "bubble chart", "scatter plot", "line chart", "sparkline chart", 
+    "circle (bubble) timeline", "quadrant chart", "dual line chart", "bar and line chart", 
+    "butterfly (tornado) chart", "histogram", "funnel chart", "bump chart", "dot plot", 
+    "barbell chart", "pie chart", "donut chart", "full stacked bar chart", "treemap", 
+    "waterfall chart", "box plot", "heatmap", "area chart"
+]
+
 
 def infer_column_type_llm(col_name, series: pd.Series, llm):
     prompt_data_cleaning = ChatPromptTemplate.from_messages([
@@ -36,13 +45,14 @@ def infer_column_type_llm(col_name, series: pd.Series, llm):
 
 
 def get_graphs_suggestions_llm(col_names, user_query, llm):
+
     prompt_graph_suggestions = ChatPromptTemplate.from_messages([
         ("system", 
         "You are a data visualization expert. Based on the dataset columns and user query, suggest the most relevant types of graphs to visualize the data."),
         ("human", 
         "Column names: {col_names}\n"
         "User query: {user_query}\n\n"
-        "Suggest at least 6 graph types (choose only from: bar chart(rows), bar chart(columns), bar chart(side by side), stacked bar chart, lollipop chart, bubble chart, scatter plot, line chart, sparkline chart, circle (bubble) timeline, quadrant chart, dual line chart, bar and line chart, butterfly (tornado) chart, histogram, funnel chart, bump chart, dot plot, barbell chart, pie chart, donut chart, full stacked bar chart, treemap, waterfall chart, box plot, heatmap, area chart).\n"
+        "Suggest at least 6 graph types (choose only from: {charts_list}).\n"
         "All the Graphs should be able to be plot in a single tableau dashboard.\n"
         "Return ONLY valid JSON with graph suggestions, where keys are graph names and values are objects containing x/y axis mapping.\n\n"
         "Example:\n"
@@ -56,7 +66,8 @@ def get_graphs_suggestions_llm(col_names, user_query, llm):
     chain = prompt_graph_suggestions | llm
     response = chain.invoke({
         "col_names": ", ".join(col_names),
-        "user_query": user_query
+        "user_query": user_query,
+        "charts_list": ", ".join(charts_list)
     })
     # Extract text depending on LLM wrapper
     if hasattr(response, "content"):  
@@ -78,16 +89,63 @@ def get_graphs_suggestions_llm(col_names, user_query, llm):
 
     return parsed
 
-def generate_dashboard(df: pd.DataFrame, graph_suggestions: dict):
-    prompt_dashboard = ChatPromptTemplate.from_messages([
-        ("system", 
-        "You are a tableau expert. Based on the dataset columns and graph suggestions, generate a tableau dashboard file."),
-        ("human", 
-        "Column names: {col_names}\n"
-        "Graph suggestions: {graph_suggestions}\n\n"
-        "Generate a tableau dashboard file that includes all the suggested graphs.\n"
-        "Return ONLY the tableau file content as a base64 encoded string.")
-    ])
+def generate_dashboard(dataset_schema: dict, graph_suggestions: dict):
+    """
+    create dataset schema object in json format
+    create graphs list object in json format
+    create prompt object specify all requirements
+    call llm with prompt
+    parse llm response to get dashboard code
+    link dashboard code to dataset
+    setup inference function to run the dashboard code
+    return dashboard inference function
+    """
+
+    prompt_dashboard_generation = ChatPromptTemplate.from_messages("""
+        You are a senior front-end engineer. Generate a single React component that directly runs in the browser (no server code). 
+
+        Constraints:
+        - Use React + Recharts only (no other chart libs).
+        - The component must fetch data from the dataset endpoint and re-fetch every {refresh_ms} ms.
+        - Parse date fields using new Date(value) when xType === "time".
+        - Aggregate as specified in each graph config (sum, count, avg supported).
+        - Render all graphs responsively in a neat grid.
+        - Include legend, tooltip, axes labels, and graceful empty/error states.
+        - Do not include any extra commentary. Output ONLY valid React code.
+
+        Inputs:
+        DATASET SCHEMA (JSON):
+        {dataset_schema}
+
+        DASHBOARD SPEC (JSON):
+        {dashboard_spec}
+
+        Requirements:
+        - Export default a React component named AutoVizDashboard.
+        - Props: none. Endpoint is read from the JSON above.
+        - Use fetch in useEffect with cleanup. Use setInterval for polling.
+        - Validate graph types against the allowed list and skip unsupported safely.
+        - For stacked_bar: use <Bar> with <Legend> and <Tooltip>, and multiple stacks via “stackId”.
+        - For histogram: bucket the field into N bins and render as a BarChart.
+        - Keep styles clean and modern. Use CSS-in-JS utilities inline (simple flex/grid is fine).
+        - Provide helper utilities inside the same file (groupBy, aggregate, binning).
+        - Use Recharts components: {charts_list}
+
+    """)
+
+    chain = prompt_dashboard_generation | llm
+    response = chain.invoke({
+        "dataset_schema": dataset_schema, 
+        "dashboard_spec": graph_suggestions,
+        "refresh_ms": 30000,
+        "charts_list": ", ".join(charts_list)
+    })
+
+
+    if hasattr(response, "content"):  
+        raw_text = response.content 
+    
+    return raw_text
     
 
 def tableau_file_generation():

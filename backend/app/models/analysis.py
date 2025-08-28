@@ -28,6 +28,7 @@ class Analysis_Result(Base):
 
     
     graph_suggestions = Column(JSON, nullable=True)   # will hold list of graphs suggested by LLM
+    dashboard_code = Column(String, nullable=True)  # will hold the generated dashboard code
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # relationships

@@ -10,11 +10,12 @@ from app.models.user import User
 from app.models.analysis import Analysis_Requirement, Analysis_Result
 from app.services.analysis import AnalysisService
 from app.services.transaction import TransactionService
+from app.utils.dataset import dataset_schema
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 @router.post("/anlyze", response_model=AnalysisTransactionOut)
-async def upload_dataset(
+async def return_analysis_dashboard(
     requirements: str = Form(...),
     file: UploadFile = None,
     db: AsyncSession = Depends(get_db)
@@ -40,8 +41,14 @@ async def upload_dataset(
     Upload dataset + requirements.
     Performs basic EDA and stores transaction.
     """
+
+    dataset_specification = dataset_schema(requirement_id=transaction.id)
+
+
     analysis_service = AnalysisService(db)
-    analysis_service.perform_analysis(requirement_id=transaction.id)
+    graphs_to_plot = analysis_service.perform_analysis(requirement_id=transaction.id)
+
+    
 
 
     
