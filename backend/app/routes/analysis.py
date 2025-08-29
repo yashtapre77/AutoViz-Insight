@@ -3,14 +3,13 @@ from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 import pandas as pd
 from app.db.session import get_db
-from app.services.file import save_file
+from app.utils.file import save_file
 from app.services.user import UserServices
 from app.schemas.anlysis import AnalysisRequirements, AnalysisRequirementIn, AnalysisTransactionOut
 from app.models.user import User
 from app.models.analysis import Analysis_Requirement, Analysis_Result
 from app.services.analysis import AnalysisService
 from app.services.transaction import TransactionService
-from app.utils.dataset import dataset_schema
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -27,7 +26,10 @@ async def return_analysis_dashboard(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     # Save file
-    file_path = save_file(file, str(current_user.id))
+    try:
+        file_path = save_file(file, str(current_user.id))
+    except:
+        HTTPException({"msg":"File not found error"})
     
     # Store in DB
     transaction = await transaction_service.create_transaction(
@@ -42,15 +44,11 @@ async def return_analysis_dashboard(
     Performs basic EDA and stores transaction.
     """
 
-    dataset_specification = dataset_schema(requirement_id=transaction.id)
 
+    try:
+        analysis_service = AnalysisService(db)
+        dashboard_code = await analysis_service.perform_analysis(requirement_id=transaction.id)
+    except:
+        return HTTPException({"msg":"some error occured"})
 
-    analysis_service = AnalysisService(db)
-    graphs_to_plot = analysis_service.perform_analysis(requirement_id=transaction.id)
-
-    
-
-
-    
-
-    return transaction
+    return dashboard_code

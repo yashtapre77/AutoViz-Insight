@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.analysis import Analysis_Requirement
+from app.models.analysis import Analysis_Requirement, Analysis_Result
 from sqlalchemy import select
 
 class TransactionService:
@@ -21,3 +21,17 @@ class TransactionService:
     async def get_transaction(self, transaction_id: int) -> Analysis_Requirement:
         result = await self.db.execute(select(Analysis_Requirement).where(Analysis_Requirement.id == transaction_id))
         return result
+    
+    async def create_analysis_result(self, *, transaction_id: int, graph_suggestions: dict, dashboard_code: str):
+        user_id = (await self.get_transaction(transaction_id)).user_id
+        analysis_result = Analysis_Result(
+            requirement_id=transaction_id,
+            user_id=user_id,
+            graph_suggestions=graph_suggestions,
+            dashboard_code=dashboard_code
+        )
+        self.db.add(analysis_result)
+        await self.db.commit()  
+        await self.db.refresh(analysis_result)
+        return analysis_result
+        

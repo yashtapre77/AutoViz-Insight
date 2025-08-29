@@ -16,8 +16,8 @@ charts_list = [
     "lollipop chart", "bubble chart", "scatter plot", "line chart", "sparkline chart", 
     "circle (bubble) timeline", "quadrant chart", "dual line chart", "bar and line chart", 
     "butterfly (tornado) chart", "histogram", "funnel chart", "bump chart", "dot plot", 
-    "barbell chart", "pie chart", "donut chart", "full stacked bar chart", "treemap", 
-    "waterfall chart", "box plot", "heatmap", "area chart"
+    "barbell chart", "pie chart", "donut chart", "full stacked bar chart",
+    "waterfall chart", "box plot", "area chart"
 ]
 
 
@@ -89,7 +89,9 @@ def get_graphs_suggestions_llm(col_names, user_query, llm):
 
     return parsed
 
-def generate_dashboard(dataset_schema: dict, graph_suggestions: dict):
+
+
+def generate_dashboard(dataset_schema: dict, graph_suggestions: dict, llm):
     """
     create dataset schema object in json format
     create graphs list object in json format
@@ -137,7 +139,7 @@ def generate_dashboard(dataset_schema: dict, graph_suggestions: dict):
     response = chain.invoke({
         "dataset_schema": dataset_schema, 
         "dashboard_spec": graph_suggestions,
-        "refresh_ms": 30000,
+        "refresh_ms": 100000,
         "charts_list": ", ".join(charts_list)
     })
 
