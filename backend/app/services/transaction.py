@@ -19,7 +19,7 @@ class TransactionService:
         return transaction
     
     async def get_transaction(self, transaction_id: int) -> Analysis_Requirement:
-        result = await self.db.execute(select(Analysis_Requirement).where(Analysis_Requirement.id == transaction_id))
+        result = (await self.db.execute(select(Analysis_Requirement).where(Analysis_Requirement.id == transaction_id))).scalars().first()
         return result
     
     async def create_analysis_result(self, *, transaction_id: int, graph_suggestions: dict, dashboard_code: str):

@@ -12,13 +12,10 @@ class AnalysisRequirementIn(BaseModel):
     user_query: str
 
 class AnalysisTransactionOut(BaseModel):
-    id: str
-    user_id: str
+    user_id: int
     dataset_name: str
-    dataset_path: str
     requirements: str
-    eda_summary: Optional[dict]
-    created_at: datetime
+    dashboard_code: str
 
     class Config:
         orm_mode = True

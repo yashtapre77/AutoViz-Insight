@@ -44,7 +44,7 @@ def infer_column_type_llm(col_name, series: pd.Series, llm):
 
 
 
-def get_graphs_suggestions_llm(col_names, user_query, llm):
+async def get_graphs_suggestions_llm(col_names, user_query, llm):
 
     prompt_graph_suggestions = ChatPromptTemplate.from_messages([
         ("system", 
@@ -64,7 +64,7 @@ def get_graphs_suggestions_llm(col_names, user_query, llm):
     ])
     
     chain = prompt_graph_suggestions | llm
-    response = chain.invoke({
+    response = await chain.ainvoke({
         "col_names": ", ".join(col_names),
         "user_query": user_query,
         "charts_list": ", ".join(charts_list)
@@ -91,7 +91,7 @@ def get_graphs_suggestions_llm(col_names, user_query, llm):
 
 
 
-def generate_dashboard(dataset_schema: dict, graph_suggestions: dict, llm):
+async def generate_dashboard(dataset_schema: dict, graph_suggestions: dict, llm):
     """
     create dataset schema object in json format
     create graphs list object in json format
@@ -103,50 +103,55 @@ def generate_dashboard(dataset_schema: dict, graph_suggestions: dict, llm):
     return dashboard inference function
     """
 
-    prompt_dashboard_generation = ChatPromptTemplate.from_messages("""
-        You are a senior front-end engineer. Generate a single React component that directly runs in the browser (no server code). 
+    prompt_dashboard_generation = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            "You are a senior front-end engineer. Generate a single React component "
+            "that directly runs in the browser (no server code)."
+        ),
+        (
+            "human",
+            """Constraints:
+            - Use React + Recharts only (no other chart libs).
+            - The component must fetch data from the dataset endpoint and re-fetch every {refresh_ms} ms.
+            - Parse date fields using new Date(value) when xType === "time".
+            - Aggregate as specified in each graph config (sum, count, avg supported).
+            - Render all graphs responsively in a neat grid.
+            - Include legend, tooltip, axes labels, and graceful empty/error states.
+            - Do not include any extra commentary. Output ONLY valid React code.
 
-        Constraints:
-        - Use React + Recharts only (no other chart libs).
-        - The component must fetch data from the dataset endpoint and re-fetch every {refresh_ms} ms.
-        - Parse date fields using new Date(value) when xType === "time".
-        - Aggregate as specified in each graph config (sum, count, avg supported).
-        - Render all graphs responsively in a neat grid.
-        - Include legend, tooltip, axes labels, and graceful empty/error states.
-        - Do not include any extra commentary. Output ONLY valid React code.
+            Inputs:
+            DATASET SCHEMA (JSON):
+            {dataset_schema}
 
-        Inputs:
-        DATASET SCHEMA (JSON):
-        {dataset_schema}
+            DASHBOARD SPEC (JSON):
+            {dashboard_spec}
 
-        DASHBOARD SPEC (JSON):
-        {dashboard_spec}
-
-        Requirements:
-        - Export default a React component named AutoVizDashboard.
-        - Props: none. Endpoint is read from the JSON above.
-        - Use fetch in useEffect with cleanup. Use setInterval for polling.
-        - Validate graph types against the allowed list and skip unsupported safely.
-        - For stacked_bar: use <Bar> with <Legend> and <Tooltip>, and multiple stacks via “stackId”.
-        - For histogram: bucket the field into N bins and render as a BarChart.
-        - Keep styles clean and modern. Use CSS-in-JS utilities inline (simple flex/grid is fine).
-        - Provide helper utilities inside the same file (groupBy, aggregate, binning).
-        - Use Recharts components: {charts_list}
-
-    """)
+            Requirements:
+            - Export default a React component named AutoVizDashboard.
+            - Props: none. Endpoint is read from the JSON above.
+            - Use fetch in useEffect with cleanup. Use setInterval for polling.
+            - Validate graph types against the allowed list and skip unsupported safely.
+            - For stacked_bar: use <Bar> with <Legend> and <Tooltip>, and multiple stacks via “stackId”.
+            - For histogram: bucket the field into N bins and render as a BarChart.
+            - Keep styles clean and modern. Use CSS-in-JS utilities inline (simple flex/grid is fine).
+            - Provide helper utilities inside the same file (groupBy, aggregate, binning).
+            - Use Recharts components: {charts_list}"""
+        )
+    ])
 
     chain = prompt_dashboard_generation | llm
-    response = chain.invoke({
-        "dataset_schema": dataset_schema, 
+
+    response = await chain.ainvoke({
+        "dataset_schema": dataset_schema,
         "dashboard_spec": graph_suggestions,
         "refresh_ms": 100000,
         "charts_list": ", ".join(charts_list)
     })
 
+    # LangChain responses may come back as `AIMessage`, not plain dict
+    raw_text = getattr(response, "content", str(response))
 
-    if hasattr(response, "content"):  
-        raw_text = response.content 
-    
     return raw_text
     
 

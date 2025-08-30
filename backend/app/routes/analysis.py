@@ -26,17 +26,18 @@ async def return_analysis_dashboard(
 ):
     user_services = UserServices(db)
     current_user = await user_services.get_current_user(token)
-    transaction_service = TransactionService(db)
     if not current_user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     # Save file
     try:
         file_path = save_file(file, str(current_user.id))
-    except:
-        HTTPException({"msg":"File not found error"})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"File error: {str(e)}")
+
     
     # Store in DB
+    transaction_service = TransactionService(db)
     transaction = await transaction_service.create_transaction(
         user_id=current_user.id,
         file_name=file.filename,
@@ -50,10 +51,17 @@ async def return_analysis_dashboard(
     """
 
 
-    try:
-        analysis_service = AnalysisService(db)
-        dashboard_code = await analysis_service.perform_analysis(requirement_id=transaction.id)
-    except:
-        return HTTPException({"msg":"some error occured"})
+    # try:
+    analysis_service = AnalysisService(db)
+    analysis_result = await analysis_service.perform_analysis(requirement_id=transaction.id)
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
 
-    return dashboard_code
+    await db.refresh(analysis_result)
+    await db.refresh(transaction)
+    return AnalysisTransactionOut(
+        user_id=transaction.user_id,
+        dataset_name=transaction.file_name,
+        requirements=transaction.user_query,
+        dashboard_code=analysis_result.dashboard_code
+    )

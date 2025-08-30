@@ -12,7 +12,7 @@ class Analysis_Requirement(Base):
     file_name = Column(String, nullable=False)
     file_path = Column(String, nullable=False) 
     user_query = Column(String, nullable=False)
-    uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    uploaded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     # relationships
     user = relationship("User", back_populates="analysis_requirements")
@@ -29,7 +29,7 @@ class Analysis_Result(Base):
     
     graph_suggestions = Column(JSON, nullable=True)   # will hold list of graphs suggested by LLM
     dashboard_code = Column(String, nullable=True)  # will hold the generated dashboard code
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     # relationships
     user = relationship("User", back_populates="analysis_results")

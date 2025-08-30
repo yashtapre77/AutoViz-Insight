@@ -33,7 +33,7 @@ def fix_data_types(df: pd.DataFrame, llm) -> pd.DataFrame:
             if col_type == "numeric":
                 df[col] = pd.to_numeric(df[col].str.replace(r"[^\d\.\-]", "", regex=True), errors="coerce")
             elif col_type == "datetime":
-                df[col] = pd.to_datetime(df[col], errors="coerce", infer_datetime_format=True)
+                df[col] = pd.to_datetime(df[col], errors="coerce")
             elif col_type == "boolean":
                 df[col] = df[col].map(
                     {"yes": True, "no": False, "true": True, "false": False, "1": True, "0": False}
