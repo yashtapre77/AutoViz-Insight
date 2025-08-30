@@ -1,5 +1,6 @@
 # app/api/v1/endpoints/analysis.py
 from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 import pandas as pd
 from app.db.session import get_db
@@ -13,14 +14,18 @@ from app.services.transaction import TransactionService
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
-@router.post("/anlyze", response_model=AnalysisTransactionOut)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+@router.post("/analyze", response_model=AnalysisTransactionOut, status_code=201)
 async def return_analysis_dashboard(
+    token: str = Depends(oauth2_scheme),
     requirements: str = Form(...),
     file: UploadFile = None,
     db: AsyncSession = Depends(get_db)
 ):
-    user_services = Depends(UserServices(db))
-    current_user = Depends(user_services.get_current_user())
+    user_services = UserServices(db)
+    current_user = await user_services.get_current_user(token)
     transaction_service = TransactionService(db)
     if not current_user:
         raise HTTPException(status_code=401, detail="Unauthorized")

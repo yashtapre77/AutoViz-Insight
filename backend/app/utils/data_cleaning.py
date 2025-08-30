@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from sklearn.impute import KNNImputer
-from llms import infer_column_type_llm, llm
+from app.utils.llms import infer_column_type_llm, llm
 
 # -------------------------
 # 1. File Handling

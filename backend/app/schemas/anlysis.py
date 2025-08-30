@@ -1,4 +1,4 @@
-from pydantic import BaseModel, FilePath, Field, String, binary
+from pydantic import BaseModel, FilePath, Field
 from typing import Optional, List, Annotated
 from datetime import datetime
 
