@@ -43,6 +43,7 @@ Pipfile.lock
 # AutoViz-Insight specific
 data/
 output/
+uploads/
 
 
 

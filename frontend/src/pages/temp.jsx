@@ -1,183 +1,425 @@
-import React from 'react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, ScatterChart, Scatter, ComposedChart
+} from 'recharts';
 
-// --- Dummy Data ---
+// --- Configuration from Inputs ---
+const DATASET_SCHEMA = {
+  dataset: {
+    endpoint: 'http://127.0.0.1:8000/api/analysis/dataset/11',
+    method: 'GET',
+    columns: [
+      { name: 'Date', type: 'object' },
+      { name: 'Region', type: 'object' },
+      { name: 'Product', type: 'object' },
+      { name: 'Sales', type: 'int64' },
+      { name: 'Profit', type: 'int64' },
+      { name: 'Quantity', type: 'int64' },
+      { name: 'Discount', type: 'int64' }
+    ]
+  }
+};
 
-// Data for Line Chart (Monthly Sales)
-const salesData = [
-  { name: 'Jan', sales: 4000, revenue: 2400 },
-  { name: 'Feb', sales: 3000, revenue: 1398 },
-  { name: 'Mar', sales: 2000, revenue: 9800 },
-  { name: 'Apr', sales: 2780, revenue: 3908 },
-  { name: 'May', sales: 1890, revenue: 4800 },
-  { name: 'Jun', sales: 2390, revenue: 3800 },
-  { name: 'Jul', sales: 3490, revenue: 4300 },
-];
+const DASHBOARD_SPEC = {
+  'bar chart(columns)': { x: 'Region', y: 'Sales' },
+  'stacked bar chart': { x: 'Region', y: 'Sales' },
+  'scatter plot': { x: 'Discount', y: 'Profit' },
+  'line chart': { x: 'Date', y: 'Sales' }, // Changed 'date' to 'Date' to match schema
+  'box plot': { x: 'Region', y: 'Sales' }, // This type will be explicitly skipped
+  'lollipop chart': { x: 'Product', y: 'Profit' }
+};
 
-// Data for Bar Chart (Website Traffic by Source)
-const trafficData = [
-  { source: 'Google', users: 1200 },
-  { source: 'Facebook', users: 950 },
-  { source: 'Twitter', users: 600 },
-  { source: 'Direct', users: 800 },
-  { source: 'Referral', users: 450 },
-];
+// --- Helper Utilities ---
 
-// Data for Pie Chart (Device Usage)
-const deviceData = [
-  { name: 'Desktop', value: 400 },
-  { name: 'Mobile', value: 300 },
-  { name: 'Tablet', value: 300 },
-];
-const PIE_COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
+const groupBy = (data, key) => {
+  if (!data || !key) return {};
+  return data.reduce((acc, item) => {
+    const groupValue = item[key];
+    if (!acc[groupValue]) {
+      acc[groupValue] = [];
+    }
+    acc[groupValue].push(item);
+    return acc;
+  }, {});
+};
 
-// Data for Area Chart (User Signups)
-const signupData = [
-  { month: 'Jan', signups: 21 },
-  { month: 'Feb', signups: 35 },
-  { month: 'Mar', signups: 28 },
-  { month: 'Apr', signups: 80 },
-  { month: 'May', signups: 42 },
-  { month: 'Jun', signups: 95 },
-];
+const aggregate = (data, valueKey, aggType) => {
+  if (!data || data.length === 0) return 0;
 
-// Data for Composed Chart (Product Performance)
-const productData = [
-  { name: 'Product A', uv: 590, pv: 800, amt: 1400 },
-  { name: 'Product B', uv: 868, pv: 967, amt: 1506 },
-  { name: 'Product C', uv: 1397, pv: 1098, amt: 989 },
-  { name: 'Product D', uv: 1480, pv: 1200, amt: 1228 },
-  { name: 'Product E', uv: 1520, pv: 1108, amt: 1100 },
-  { name: 'Product F', uv: 1400, pv: 680, amt: 1700 },
-];
+  const numericValues = data
+    .map(item => item[valueKey])
+    .filter(value => typeof value === 'number' && !isNaN(value));
 
-// Data for Radar Chart (Feature Satisfaction)
-const featureData = [
-  { subject: 'UI/UX', A: 120, B: 110, fullMark: 150 },
-  { subject: 'Performance', A: 98, B: 130, fullMark: 150 },
-  { subject: 'Features', A: 86, B: 130, fullMark: 150 },
-  { subject: 'Support', A: 99, B: 100, fullMark: 150 },
-  { subject: 'Price', A: 85, B: 90, fullMark: 150 },
-  { subject: 'Reliability', A: 65, B: 85, fullMark: 150 },
-];
+  if (numericValues.length === 0) {
+    return aggType === 'count' ? data.length : 0;
+  }
 
+  switch (aggType) {
+    case 'sum':
+      return numericValues.reduce((sum, val) => sum + val, 0);
+    case 'count':
+      return data.length;
+    case 'avg':
+      return numericValues.reduce((sum, val) => sum + val, 0) / numericValues.length;
+    default:
+      return 0;
+  }
+};
 
-// --- Chart Card Component ---
-// A reusable component to wrap each chart in a styled card.
-const ChartCard = ({ title, children }) => (
-  <div className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-    <h3 className="text-xl font-semibold text-gray-700 mb-4">{title}</h3>
-    <div style={{ width: '100%', height: 300 }}>
-      {children}
-    </div>
-  </div>
-);
+const inferXType = (xKey, schemaColumns) => {
+  const column = schemaColumns.find(col => col.name === xKey);
+  if (column && (column.name.toLowerCase().includes('date') || column.type === 'object')) {
+    return 'time';
+  }
+  if (column && (column.type === 'int64' || column.type === 'float64')) {
+    return 'number';
+  }
+  return 'category';
+};
 
+const getProcessedData = (rawData, xKey, yKey, aggType, stackKey = null, schemaColumns) => {
+  if (!rawData || rawData.length === 0) return [];
 
-// --- Main Dashboard App Component ---
-export default function Dashboard() {
-  return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800">Analytics Dashboard</h1>
-          <p className="text-gray-500 mt-1">Overview of key business metrics.</p>
-        </header>
+  const xType = inferXType(xKey, schemaColumns);
 
-        {/* Grid for the charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* Chart 1: Monthly Sales (Line Chart) */}
-          <ChartCard title="Monthly Sales">
-            <ResponsiveContainer>
-              <LineChart data={salesData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+  const parsedData = rawData.map(item => {
+    const newItem = { ...item };
+    if (xType === 'time' && item[xKey]) {
+      newItem[xKey] = new Date(item[xKey]).getTime();
+    }
+    return newItem;
+  });
+
+  if (!yKey) {
+    const grouped = groupBy(parsedData, xKey);
+    return Object.keys(grouped).map(key => ({
+      [xKey]: xType === 'time' ? new Date(parseInt(key)).getTime() : key,
+      count: grouped[key].length
+    }));
+  }
+
+  if (stackKey) {
+    const groupedByXAndStack = parsedData.reduce((acc, item) => {
+      const xValue = item[xKey];
+      const stackValue = item[stackKey];
+      if (!acc[xValue]) acc[xValue] = {};
+      if (!acc[xValue][stackValue]) acc[xValue][stackValue] = [];
+      acc[xValue][stackValue].push(item);
+      return acc;
+    }, {});
+
+    return Object.keys(groupedByXAndStack).map(xVal => {
+      const row = { [xKey]: xType === 'time' ? new Date(parseInt(xVal)).getTime() : xVal };
+      Object.keys(groupedByXAndStack[xVal]).forEach(stackVal => {
+        row[stackVal] = aggregate(groupedByXAndStack[xVal][stackVal], yKey, aggType);
+      });
+      return row;
+    });
+  }
+
+  const grouped = groupBy(parsedData, xKey);
+  return Object.keys(grouped).map(key => ({
+    [xKey]: xType === 'time' ? new Date(parseInt(key)).getTime() : key,
+    [yKey]: aggregate(grouped[key], yKey, aggType)
+  }));
+};
+
+// --- Main Component ---
+
+const AutoVizDashboard = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const endpoint = DATASET_SCHEMA.dataset.endpoint;
+  const schemaColumns = DATASET_SCHEMA.dataset.columns;
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      setData(result);
+    } catch (e) {
+      console.error("Failed to fetch data:", e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    const intervalId = setInterval(fetchData, 100000);
+    return () => clearInterval(intervalId);
+  }, [endpoint]);
+
+  const processedChartData = useMemo(() => {
+    if (!data) return {};
+
+    const chartData = {};
+    for (const chartName in DASHBOARD_SPEC) {
+      const config = DASHBOARD_SPEC[chartName];
+      const { x: xKey, y: yKey } = config;
+
+      let aggType = 'sum';
+      const yColumn = schemaColumns.find(col => col.name === yKey);
+      if (!yColumn || (yColumn.type !== 'int64' && yColumn.type !== 'float64')) {
+        aggType = 'count';
+      }
+
+      let stackKey = null;
+      if (chartName === 'stacked bar chart') {
+        const availableCategoricalColumns = schemaColumns.filter(
+          col => col.type === 'object' && col.name !== xKey && col.name !== yKey
+        );
+        if (availableCategoricalColumns.length > 0) {
+          stackKey = availableCategoricalColumns[0].name;
+        } else {
+          console.warn(
+            `Stacked bar chart "${chartName}" requires a third categorical dimension for stacking, but none found. Rendering as a regular bar chart.`
+          );
+        }
+      }
+
+      chartData[chartName] = getProcessedData(data, xKey, yKey, aggType, stackKey, schemaColumns);
+    }
+    return chartData;
+  }, [data, schemaColumns]);
+
+  const renderChart = (chartName, config) => {
+    const { x: xKey, y: yKey } = config;
+    const chartData = processedChartData[chartName];
+    const xType = inferXType(xKey, schemaColumns);
+
+    if (!chartData || chartData.length === 0) {
+      return <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No data for {chartName}.</div>;
+    }
+
+    const commonProps = {
+      data: chartData,
+      margin: { top: 20, right: 30, left: 20, bottom: 5 },
+      style: { fontSize: '12px' }
+    };
+
+    const xAxisProps = {
+      dataKey: xKey,
+      angle: xType === 'category' && chartData.length > 5 ? -45 : 0,
+      textAnchor: xType === 'category' && chartData.length > 5 ? 'end' : 'middle',
+      height: xType === 'category' && chartData.length > 5 ? 60 : 30,
+      interval: 0,
+      tickFormatter: xType === 'time' ? tickItem => new Date(tickItem).toLocaleDateString() : undefined,
+      type: xType === 'time' ? 'number' : xType,
+      domain: xType === 'time' ? ['dataMin', 'dataMax'] : undefined,
+      scale: xType === 'time' ? 'time' : undefined,
+      label: { value: xKey, position: 'insideBottom', offset: -5 }
+    };
+
+    const yAxisProps = {
+      label: { value: yKey || 'Count', angle: -90, position: 'insideLeft' }
+    };
+
+    switch (chartName) {
+      case 'bar chart(columns)':
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart {...commonProps}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis {...xAxisProps} />
+              <YAxis {...yAxisProps} />
+              <Tooltip formatter={value => value.toLocaleString()} />
+              <Legend />
+              <Bar dataKey={yKey} fill="#8884d8" name={yKey} />
+            </BarChart>
+          </ResponsiveContainer>
+        );
+
+      case 'stacked bar chart': {
+        const stackCategories = Array.from(
+          new Set(chartData.flatMap(item => Object.keys(item).filter(k => k !== xKey)))
+        );
+        const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#a4de6c', '#d0ed57'];
+
+        if (stackCategories.length <= 1) {
+          return (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart {...commonProps}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
+                <XAxis {...xAxisProps} />
+                <YAxis {...yAxisProps} />
+                <Tooltip formatter={value => value.toLocaleString()} />
                 <Legend />
-                <Line type="monotone" dataKey="sales" stroke="#8884d8" strokeWidth={2} activeDot={{ r: 8 }} />
-                <Line type="monotone" dataKey="revenue" stroke="#82ca9d" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          {/* Chart 2: Website Traffic (Bar Chart) */}
-          <ChartCard title="Website Traffic by Source">
-            <ResponsiveContainer>
-              <BarChart data={trafficData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="source" type="category" width={80} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="users" fill="#4A90E2" barSize={20} />
+                <Bar dataKey={yKey} fill="#8884d8" name={yKey} />
               </BarChart>
             </ResponsiveContainer>
-          </ChartCard>
+          );
+        }
 
-          {/* Chart 3: Device Usage (Pie Chart) */}
-          <ChartCard title="Device Usage">
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie data={deviceData} cx="50%" cy="50%" labelLine={false} outerRadius={120} fill="#8884d8" dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {deviceData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartCard>
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart {...commonProps}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis {...xAxisProps} />
+              <YAxis {...yAxisProps} />
+              <Tooltip formatter={value => value.toLocaleString()} />
+              <Legend />
+              {stackCategories.map((category, index) => (
+                <Bar
+                  key={category}
+                  dataKey={category}
+                  stackId="a"
+                  fill={colors[index % colors.length]}
+                  name={category}
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        );
+      }
 
-          {/* Chart 4: User Signups (Area Chart) */}
-          <ChartCard title="User Signups">
-            <ResponsiveContainer>
-              <AreaChart data={signupData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Area type="monotone" dataKey="signups" stroke="#FF7300" fill="#FF7300" fillOpacity={0.3} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartCard>
+      case 'scatter plot':
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <ScatterChart {...commonProps}>
+              <CartesianGrid />
+              <XAxis {...xAxisProps} type="number" domain={['auto', 'auto']} />
+              <YAxis {...yAxisProps} type="number" domain={['auto', 'auto']} />
+              <Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={value => value.toLocaleString()} />
+              <Legend />
+              <Scatter name={chartName} dataKey={yKey} fill="#8884d8" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        );
 
-          {/* Chart 5: Product Performance (Composed Chart) */}
-          <ChartCard title="Product Performance">
-            <ResponsiveContainer>
-              <ComposedChart data={productData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid stroke="#f5f5f5" />
-                <XAxis dataKey="name" scale="band" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Area type="monotone" dataKey="amt" fill="#8884d8" stroke="#8884d8" />
-                <Bar dataKey="pv" barSize={20} fill="#413ea0" />
-                <Line type="monotone" dataKey="uv" stroke="#ff7300" />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </ChartCard>
+      case 'line chart':
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart {...commonProps}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis {...xAxisProps} />
+              <YAxis {...yAxisProps} />
+              <Tooltip formatter={value => value.toLocaleString()} />
+              <Legend />
+              <Line type="monotone" dataKey={yKey} stroke="#8884d8" activeDot={{ r: 8 }} name={yKey} />
+            </LineChart>
+          </ResponsiveContainer>
+        );
 
-          {/* Chart 6: Feature Satisfaction (Radar Chart) */}
-          <ChartCard title="Feature Satisfaction">
-            <ResponsiveContainer>
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={featureData}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="subject" />
-                <PolarRadiusAxis />
-                <Tooltip />
-                <Legend />
-                <Radar name="Survey A" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                <Radar name="Survey B" dataKey="B" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+      case 'lollipop chart':
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart {...commonProps}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis {...xAxisProps} />
+              <YAxis {...yAxisProps} />
+              <Tooltip formatter={value => value.toLocaleString()} />
+              <Legend />
+              <Bar dataKey={yKey} fill="#8884d8" barSize={2} name={yKey} />
+              <Scatter dataKey={yKey} fill="#8884d8" shape="circle" radius={5} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        );
 
-        </div>
+      case 'box plot':
+        return (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '20px',
+              color: '#ff6666',
+              border: '1px dashed #ff6666',
+              borderRadius: '5px'
+            }}
+          >
+            Box Plot is not directly supported by Recharts and is skipped.
+          </div>
+        );
+
+      default:
+        return (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '20px',
+              color: '#ff6666',
+              border: '1px dashed #ff6666',
+              borderRadius: '5px'
+            }}
+          >
+            Unsupported chart type: {chartName}
+          </div>
+        );
+    }
+  };
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '50px', fontSize: '20px' }}>Loading data...</div>;
+  }
+
+  if (error) {
+    return <div style={{ textAlign: 'center', padding: '50px', fontSize: '20px', color: 'red' }}>Error: {error}</div>;
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px', fontSize: '20px', color: '#666' }}>
+        No data available to display.
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        fontFamily: 'Arial, sans-serif',
+        padding: '20px',
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }}
+    >
+      <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>AutoViz Dashboard</h1>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+          gap: '30px'
+        }}
+      >
+        {Object.entries(DASHBOARD_SPEC).map(([chartName, config]) => (
+          <div
+            key={chartName}
+            style={{
+              border: '1px solid #e0e0e0',
+              borderRadius: '8px',
+              padding: '15px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              backgroundColor: '#fff'
+            }}
+          >
+            <h2
+              style={{
+                textAlign: 'center',
+                marginBottom: '15px',
+                fontSize: '1.2em',
+                color: '#555'
+              }}
+            >
+              {chartName
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ')}
+            </h2>
+            {renderChart(chartName, config)}
+          </div>
+        ))}
       </div>
     </div>
   );
-}
+};
+
+export default AutoVizDashboard;

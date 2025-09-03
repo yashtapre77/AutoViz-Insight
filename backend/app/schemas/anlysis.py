@@ -13,6 +13,7 @@ class AnalysisRequirementIn(BaseModel):
 
 class AnalysisTransactionOut(BaseModel):
     user_id: int
+    transaction_id: int
     dataset_name: str
     requirements: str
     dashboard_code: str

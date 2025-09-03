@@ -61,7 +61,35 @@ async def return_analysis_dashboard(
     await db.refresh(transaction)
     return AnalysisTransactionOut(
         user_id=transaction.user_id,
+        transaction_id=transaction.id,
         dataset_name=transaction.file_name,
         requirements=transaction.user_query,
         dashboard_code=analysis_result.dashboard_code
     )
+
+
+
+@router.get("/dataset/{requirement_id}", status_code=200)
+async def get_dataset_preview(
+    requirement_id: int,
+    # token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db)
+):
+    # user_services = UserServices(db)
+    # current_user = await user_services.get_current_user(token)
+    # if not current_user:
+    #     raise HTTPException(status_code=401, detail="Unauthorized")
+
+    transaction_service = TransactionService(db)
+    transaction = await transaction_service.get_transaction(requirement_id)
+    # if not transaction or transaction.user_id != current_user.id:
+    #     raise HTTPException(status_code=404, detail="Transaction not found")
+
+
+    try:
+        df = pd.read_csv(transaction.file_path)
+        preview = df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File read error: {str(e)}")
+
+    return preview
