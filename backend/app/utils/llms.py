@@ -3,13 +3,13 @@ from langchain.prompts import ChatPromptTemplate
 import pandas as pd
 import json
 import re
-# from app.core.config import settings
+from app.core.config import settings
 
 # Initialize Gemini model
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",   
     temperature=0,
-    google_api_key="AIzaSyAjR1juQNpAwtyBen79_rbu4zk2LZu4xfE"
+    google_api_key=settings.GOOGLE_API_KEY_FLASH
 )
 
 charts_list = [
@@ -39,6 +39,8 @@ def infer_column_type_llm(col_name, series: pd.Series, llm):
         "col_name": col_name,
         "samples": samples
     })
+
+    print("Inferred column type response:")
     return response.content.strip().lower()
 
 
@@ -59,7 +61,6 @@ async def get_graphs_suggestions_llm(col_names, user_query, llm, charts_list=cha
 
             {{
             "title": "<string> Title of the graph>",
-            "description": "<string> What this graph shows>",
             "graph_type": "<string> (bar, line, scatter, histogram, pie, stacked_bar, heatmap, etc.)",
             "x_axis": {{
                 "feature": "<string: column name from dataset>",
@@ -113,13 +114,13 @@ async def get_graphs_suggestions_llm(col_names, user_query, llm, charts_list=cha
             parsed = json.loads(json_str.group())
         else:
             raise ValueError("LLM did not return valid JSON:\n" + raw_text)
-
+    print("Graph suggestions completed")
     return parsed
 
 
 
 
-async def generate_dashboard(dataset_schema: dict, graph_suggestions: dict, llm):
+async def generate_dashboard(dataset_schema: dict, graph_suggestions: dict, llm, requirement_id):
     """
     create dataset schema object in json format
     create graphs list object in json format
@@ -141,10 +142,10 @@ async def generate_dashboard(dataset_schema: dict, graph_suggestions: dict, llm)
             "human",
             """Constraints:
             - Use React + Recharts only (no other chart libs).
-            - The component must fetch data from the dataset endpoint and re-fetch every {refresh_ms} ms.
+            - The component must fetch data from the dataset endpoint ({dataset_endpoint}) and re-fetch every {refresh_ms} ms.
             - Parse date fields using new Date(value) when xType === "time".
             - Aggregate as specified in each graph config (sum, count, avg supported).
-            - Render all graphs responsively in a neat grid i.e. 2x3. (there are 6 graphs so 2 rows x 3 cols).
+            - Render all graphs responsively in a neat grid i.e. 2x3. (there are 6 graphs so 2 rows x 3 cols). First row should have 3 graphs, second row should have 3 graphs exactly.
             - Include legend, tooltip, axes labels, and graceful empty/error states.
             - Do not include any extra commentary. Output ONLY valid React code.
 
@@ -170,16 +171,19 @@ async def generate_dashboard(dataset_schema: dict, graph_suggestions: dict, llm)
 
     chain = prompt_dashboard_generation | llm
 
+    dataset_endpoint = "http://127.0.0.1:8000/api/analysis/dataset/"+str(requirement_id) # Placeholder
+
     response = await chain.ainvoke({
         "dataset_schema": dataset_schema,
         "dashboard_spec": graph_suggestions,
         "refresh_ms": 100000,
-        "charts_list": ", ".join(charts_list)
+        "charts_list": ", ".join(charts_list),
+        "dataset_endpoint": dataset_endpoint
     })
 
     # LangChain responses may come back as `AIMessage`, not plain dict
     raw_text = getattr(response, "content", str(response))
-
+    print("Generated dashboard code length:", len(raw_text))
     return raw_text
     
 

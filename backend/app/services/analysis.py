@@ -42,7 +42,7 @@ class AnalysisService:
         }
 
         
-        code = await generate_dashboard(dataset_schema=output, graph_suggestions=graphs_to_plot, llm=llm)
+        code = await generate_dashboard(dataset_schema=output, graph_suggestions=graphs_to_plot, llm=llm, requirement_id=requirement_id)
 
         # Store analysis result in DB
         analysis_result = await self.transaction_service.create_analysis_result(

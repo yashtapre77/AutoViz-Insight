@@ -24,6 +24,7 @@ async def return_analysis_dashboard(
     file: UploadFile = None,
     db: AsyncSession = Depends(get_db)
 ):
+    print("Received analysis request")
     user_services = UserServices(db)
     current_user = await user_services.get_current_user(token)
     if not current_user:
@@ -35,7 +36,7 @@ async def return_analysis_dashboard(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"File error: {str(e)}")
 
-    
+    print("File saved at:", file_path)
     # Store in DB
     transaction_service = TransactionService(db)
     transaction = await transaction_service.create_transaction(
@@ -50,7 +51,7 @@ async def return_analysis_dashboard(
     Performs basic EDA and stores transaction.
     """
 
-
+    print("Transaction created with ID:", transaction.id)
     # try:
     analysis_service = AnalysisService(db)
     analysis_result = await analysis_service.perform_analysis(requirement_id=transaction.id)
