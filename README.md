@@ -248,6 +248,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Contact
 
 **Yash Tapre** - [@yashtapre77](https://github.com/yashtapre77)
+**Saiyyed Kaif Aalam** - [@SaiyyedKaif](https://github.com/SaiyyedKaif)
+
 
 Project Link: [https://github.com/yashtapre77/AutoViz-Insight](https://github.com/yashtapre77/AutoViz-Insight)
 
