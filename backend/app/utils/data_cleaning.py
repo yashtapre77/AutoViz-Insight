@@ -1,8 +1,48 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from sklearn.impute import KNNImputer
 from app.utils.llms import infer_column_type_llm, llm
+
+
+
+# custom KNN imputer to avoid sklearn dependency
+class KNNImputer:
+    def __init__(self, n_neighbors=5):
+        self.n_neighbors = n_neighbors
+
+    def fit_transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        X_filled = X.copy()
+        data = X_filled.values
+
+        # loop over all missing cells
+        for row_idx, col_idx in zip(*np.where(pd.isna(data))):
+            row = data[row_idx, :]
+
+            # mask for rows where this column is not NaN
+            valid_mask = ~pd.isna(data[:, col_idx])
+
+            # exclude current row
+            valid_mask[row_idx] = False  
+
+            # compute distances (ignore NaNs)
+            distances = []
+            for i, candidate in enumerate(data):
+                if valid_mask[i]:
+                    mask = ~pd.isna(row) & ~pd.isna(candidate)
+                    if mask.sum() == 0:
+                        continue
+                    dist = np.linalg.norm(row[mask] - candidate[mask])
+                    distances.append((dist, candidate[col_idx]))
+
+            # sort by distance and pick k nearest neighbors
+            distances.sort(key=lambda x: x[0])
+            neighbors = [val for _, val in distances[:self.n_neighbors]]
+
+            if neighbors:
+                data[row_idx, col_idx] = np.mean(neighbors)
+
+        return pd.DataFrame(data, columns=X.columns)
+
 
 # -------------------------
 # 1. File Handling
