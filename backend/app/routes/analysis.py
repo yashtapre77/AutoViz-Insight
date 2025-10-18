@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, UploadFile, Form, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 import pandas as pd
+import numpy as np
 from app.db.session import get_db
 from app.utils.file import save_file
 from app.services.user import UserServices
@@ -11,6 +12,7 @@ from app.models.user import User
 from app.models.analysis import Analysis_Requirement, Analysis_Result
 from app.services.analysis import AnalysisService
 from app.services.transaction import TransactionService
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -89,8 +91,18 @@ async def get_dataset_preview(
 
     try:
         df = pd.read_csv(transaction.file_path)
-        preview = df.to_dict(orient="records")
+
+
+        df = df.replace([np.inf, -np.inf], np.nan)
+        df = df.fillna(0)  # or use another placeholder
+
+        # Convert to JSON-safe dict
+        data = df.to_dict(orient="records")
+        # preview = df.to_dict(orient="records")
+
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File read error: {str(e)}")
 
-    return preview
+    return JSONResponse(content=data)
+    # return preview

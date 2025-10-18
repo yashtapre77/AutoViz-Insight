@@ -9,28 +9,15 @@ import { ClipLoader } from "react-spinners";
  *  - token: string (Bearer token for auth)
  *  - requirements: string (analysis description)
  *  - file: File object (dataset to upload)
- *
- * Usage Example:
- * <Route
- *   path="/analyze"
- *   element={
- *     <DynamicCodeRunner
- *       token={bearerToken}
- *       requirements="Analyze sales data"
- *       file={uploadedFile}
- *     />
- *   }
- * />
  */
 
 const DynamicCodeRunner = ({ token, requirements, file }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [dashboardCode, setDashboardCode] = useState("");
   const [error, setError] = useState("");
   const [RenderedComponent, setRenderedComponent] = useState(null);
-  
+
   useEffect(() => {
-    const fetchAndRunCode = async () => {
+    const fetchAndLoadComponent = async () => {
       try {
         setIsLoading(true);
         setError("");
@@ -50,33 +37,45 @@ const DynamicCodeRunner = ({ token, requirements, file }) => {
           }
         );
 
-        const code = response.data?.dashboard_code || "";
-        setDashboardCode(code);
+        let rawCode = response.data?.dashboard_code || "";
 
-        // Extract pure JSX code inside ```jsx ... ```
-        const cleanedCode = code
-          .replace(/^```jsx/, "")
+        // 🧹 Clean output just in case the LLM adds markdown or escaped text
+        const cleanedCode = rawCode
+          .replace(/^```[a-z]*\n?/, "")
           .replace(/```$/, "")
           .replace(/\\n/g, "\n")
+          .replace(/\\"/g, '"')
+          .replace(/\\r/g, "")
           .trim();
 
-        // Dynamically compile and render
-        const ComponentFunc = new Function(
-          "React",
-          `${cleanedCode}; return () => <Dashboard />;`
-        )(React);
+        // 🧩 Create a new JS file blob (works like a local file)
+        console.log("Cleaned Code:", cleanedCode);
+        const blob = new Blob([cleanedCode], { type: "text/javascript" });
+        const blobUrl = URL.createObjectURL(blob);
 
-        setRenderedComponent(() => ComponentFunc);
+        // 🧠 Dynamically import it as a module
+        const module = await import(/* @vite-ignore */ blobUrl);
+
+        // The backend-generated file should have a default export
+        if (module && module.default) {
+          setRenderedComponent(() => module.default);
+        } else {
+          throw new Error("Generated module has no default export.");
+        }
+
+        // Cleanup blob when unmounted
+        return () => URL.revokeObjectURL(blobUrl);
+
       } catch (err) {
-        console.error(err);
-        setError("Error fetching or running code. Check console for details.");
+        console.error("Error loading dashboard:", err);
+        setError("Failed to load dashboard component. See console for details.");
       } finally {
         setIsLoading(false);
       }
     };
 
     if (file && requirements && token) {
-      fetchAndRunCode();
+      fetchAndLoadComponent();
     } else {
       setError("Missing required props: token, requirements, or file.");
       setIsLoading(false);
@@ -122,16 +121,7 @@ const DynamicCodeRunner = ({ token, requirements, file }) => {
       {RenderedComponent ? (
         <RenderedComponent />
       ) : (
-        <pre
-          style={{
-            background: "#f4f4f4",
-            padding: "10px",
-            borderRadius: "8px",
-            overflowX: "auto",
-          }}
-        >
-          {dashboardCode}
-        </pre>
+        <p>No dashboard component found.</p>
       )}
     </div>
   );

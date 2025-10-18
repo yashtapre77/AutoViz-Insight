@@ -133,41 +133,66 @@ async def generate_dashboard(dataset_schema: dict, graph_suggestions: dict, llm,
     """
 
     prompt_dashboard_generation = ChatPromptTemplate.from_messages([
-        (
-            "system",
-            "You are a senior front-end engineer. Generate a single React component "
-            "that directly runs in the browser (no server code)."
-        ),
-        (
-            "human",
-            """Constraints:
-            - Use React + Recharts only (no other chart libs).
-            - The component must fetch data from the dataset endpoint ({dataset_endpoint}) and re-fetch every {refresh_ms} ms.
-            - Parse date fields using new Date(value) when xType === "time".
-            - Aggregate as specified in each graph config (sum, count, avg supported).
-            - Render all graphs responsively in a neat grid i.e. 2x3. (there are 6 graphs so 2 rows x 3 cols). First row should have 3 graphs, second row should have 3 graphs exactly.
-            - Include legend, tooltip, axes labels, and graceful empty/error states.
-            - Do not include any extra commentary. Output ONLY valid React code.
+    (
+        "system",
+        "You are a senior front-end engineer and expert in React and Recharts. "
+        "Your job is to generate clean, production-ready React code that runs directly in the browser. "
+        "Do not include markdown formatting, explanations, or comments — only pure React code. "
+        "All hooks (useState, useEffect, useMemo) must follow React's Rules of Hooks and never be called conditionally."
+    ),
+    (
+        "human",
+        """Generate a **single complete React component** that visualizes data as per the specifications below.
 
-            Inputs:
-            DATASET SCHEMA (JSON):
-            {dataset_schema}
+        ### Requirements:
+        - Must use **React (with hooks)** and **Recharts** only. No other libraries or frameworks.
+        - The component must:
+        1. Fetch data from the dataset endpoint: **{dataset_endpoint}**
+        2. Automatically re-fetch every **{refresh_ms} ms** using `setInterval` inside `useEffect`.
+        3. Handle **loading**, **empty**, and **error** states gracefully without breaking the layout.
+        4. Parse date/time fields with `new Date(value)` when `xType === "time"`.
+        5. Safely handle missing or malformed data (ignore charts that cannot be rendered).
+        6. Dynamically render **exactly 6 charts** in a **2x3 responsive grid** layout.
+        7. Include **legend**, **tooltip**, **axis labels**, and **responsive container**.
+        8. Use a minimal, modern design with consistent margins and font sizes.
+        - For `stacked_bar`, render multiple `<Bar>` components using the same `stackId`.
+        - For `histogram`, include a helper function that bins values into N buckets.
+        - Implement helper functions inside the same file:
+        - `groupBy`
+        - `aggregate`
+        - `binData`
+        - Use `useMemo` only for expensive computations like data aggregation or binning — never conditionally.
+        - All hooks (`useState`, `useEffect`, `useMemo`) must be **declared at the top level of the component**, never inside `if`, `for`, or `map` blocks.
+        - Wrap dynamic rendering logic in plain JavaScript conditions **after** hooks are declared.
+        - The component must recover safely from runtime errors (using try/catch around data parsing or chart generation).
+        - Use `useEffect` cleanup for the interval timer.
 
-            DASHBOARD SPEC (JSON):
-            {dashboard_spec}
+        ### Technical Constraints:
+        - Do not wrap code inside markdown (no ```jsx or ``` blocks).
+        - Do not include any textual explanations or comments.
+        - Output must be **pure JavaScript/React code**, ready to run.
+        - Escape all backslashes and quotes properly to ensure valid JSON text.
+        - Ensure all JSX props use **double quotes ("")**.
+        - Do not use `eval`, `Function()`, or dynamic imports.
+        - Use consistent indentation and line breaks.
 
-            Requirements:
-            - Export default a React component named AutoVizDashboard.
-            - Props: none. Endpoint is read from the JSON above.
-            - Use fetch in useEffect with cleanup. Use setInterval for polling.
-            - Validate graph types against the allowed list and skip unsupported safely.
-            - For stacked_bar: use <Bar> with <Legend> and <Tooltip>, and multiple stacks via “stackId”.
-            - For histogram: bucket the field into N bins and render as a BarChart.
-            - Keep styles clean and modern. Use CSS-in-JS utilities inline (simple flex/grid is fine).
-            - Provide helper utilities inside the same file (groupBy, aggregate, binning).
-            - Use Recharts components: {charts_list}"""
+        ### Inputs:
+        - **DATASET SCHEMA (JSON):**
+        {dataset_schema}
+
+        - **DASHBOARD SPEC (JSON):**
+        {dashboard_spec}
+
+        - **Allowed Chart Types:** {charts_list}
+
+        The generated component must dynamically adapt to the dataset schema and dashboard specification, while strictly following React's Rules of Hooks and ensuring stable hook ordering across renders.
+
+        Export the component as the **default export** named `AutoVizDashboard`.
+        """
         )
     ])
+
+
 
     chain = prompt_dashboard_generation | llm
 
