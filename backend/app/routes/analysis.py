@@ -71,6 +71,35 @@ async def return_analysis_dashboard(
     )
 
 
+@router.get("/dashboard", status_code=200, response_model=AnalysisTransactionOut)
+async def get_dashboard_code(
+    token: str = Depends(oauth2_scheme),
+    requirements: str = Form(...),
+    file: UploadFile = None,
+    db: AsyncSession = Depends(get_db)
+):
+    print("Received analysis request")
+    user_services = UserServices(db)
+    current_user = await user_services.get_current_user(token)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Save file
+    try:
+        file_path = save_file(file, str(current_user.id))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"File error: {str(e)}")
+
+    print("File saved at:", file_path)
+    # Store in DB
+    transaction_service = TransactionService(db)
+    transaction = await transaction_service.create_transaction(
+        user_id=current_user.id,
+        file_name=file.filename,
+        file_path=file_path,
+        user_query=requirements,
+    )
+
 
 @router.get("/dataset/{requirement_id}", status_code=200)
 async def get_dataset_preview(
