@@ -17,3 +17,4 @@ class User(Base):
     # relationships
     analysis_requirements = relationship("Analysis_Requirement", back_populates="user", cascade="all, delete-orphan")
     analysis_results = relationship("Analysis_Result", back_populates="user", cascade="all, delete-orphan")
+    analysis_dashboards = relationship("Analysis_Dashboard", back_populates="user", cascade="all, delete-orphan")

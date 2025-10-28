@@ -2,7 +2,7 @@ from app.db.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.utils.data_cleaning import clean_pipeline
 from app.services.transaction import TransactionService
-from app.utils.llms import llm, get_graphs_suggestions_llm, generate_dashboard
+from app.utils.llms import llm, get_graphs_suggestions_llm, generate_dashboard, generate_graphs_dashboard
 import pandas as pd
 
 
@@ -54,6 +54,37 @@ class AnalysisService:
         return analysis_result
         
 
+
+    async def generate_dashboard_code(self, *, requirement_id: str = None):
+        transaction = await self.transaction_service.get_transaction(requirement_id)
+        file_path = transaction.file_path
+
+        # perform data cleaning
+        cleaned_df = clean_pipeline(file_path)
+        cols = cleaned_df.columns.tolist()
+        user_query = transaction.user_query
+
+        columns = ""
+        df = pd.read_csv(file_path, nrows=5)
+
+        for col in df.columns:
+            columns += f"{col} ({str(df[col].dtype)}), "
+
+
+        code = await generate_graphs_dashboard(
+            column_info=columns,
+            user_query=user_query,
+            data_preview=df.head(1).to_dict(orient="records"),
+            requirement_id=requirement_id,
+            llm=llm
+        )
+
+        analysis_result = await self.transaction_service.create_analysis_dashboard(
+            transaction_id=requirement_id,
+            dashboard_code=code
+        )
+
+        return analysis_result
         
 
     def get_tableau_file(self, *, file_path:str):

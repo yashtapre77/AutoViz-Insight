@@ -71,7 +71,7 @@ async def return_analysis_dashboard(
     )
 
 
-@router.get("/dashboard", status_code=200, response_model=AnalysisTransactionOut)
+@router.post("/dashboard", status_code=200, response_model=AnalysisTransactionOut)
 async def get_dashboard_code(
     token: str = Depends(oauth2_scheme),
     requirements: str = Form(...),
@@ -100,6 +100,27 @@ async def get_dashboard_code(
         user_query=requirements,
     )
 
+    """
+    Upload dataset + requirements.
+    Performs basic EDA and stores transaction.
+    """
+
+    print("Transaction created with ID:", transaction.id)
+    # try:
+    analysis_service = AnalysisService(db)
+    analysis_result = await analysis_service.generate_dashboard_code(requirement_id=transaction.id)
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
+
+    await db.refresh(analysis_result)
+    await db.refresh(transaction)
+    return AnalysisTransactionOut(
+        user_id=transaction.user_id,
+        transaction_id=transaction.id,
+        dataset_name=transaction.file_name,
+        requirements=transaction.user_query,
+        dashboard_code=analysis_result.dashboard_code
+    )
 
 @router.get("/dataset/{requirement_id}", status_code=200)
 async def get_dataset_preview(

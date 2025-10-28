@@ -3,14 +3,13 @@ from langchain.prompts import ChatPromptTemplate
 import pandas as pd
 import json
 import re
-# from app.core.config import settings
+from app.core.config import settings
 
 # Initialize Gemini model
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     temperature=0,
-    # google_api_key=settings.GOOGLE_API_KEY_FLASH,
-    google_api_key="AIzaSyBrKYD0SugwmDRtZyTvuYK4u1fgbAY7rPM",
+    google_api_key=settings.GOOGLE_API_KEY_FLASH,
 )
 
 charts_list = [
@@ -242,7 +241,7 @@ def tableau_file_generation():
     pass
 
 
-async def generate_graphs_dashboard(column_info: str, user_query: str, data_preview: str, api_endpoint: str):
+async def generate_graphs_dashboard(column_info: str, user_query: str, data_preview: str, requirement_id, llm=llm ):
 
     dashboard_generation_prompt = ChatPromptTemplate.from_messages([
         (
@@ -468,6 +467,9 @@ async def generate_graphs_dashboard(column_info: str, user_query: str, data_prev
     chain = dashboard_generation_prompt | llm
     
     print("Generating dashboard code via LLM...")
+    api_endpoint = "http://127.0.0.1:8000/api/analysis/dataset/" + str(
+        requirement_id
+    )  # Placeholder
 
     try:
         response = await chain.ainvoke({

@@ -233,7 +233,7 @@ def final_touch(df: pd.DataFrame) -> pd.DataFrame:
 # -------------------------
 def clean_pipeline(file_path: str) -> pd.DataFrame:
     df = load_file(file_path)
-    df = fix_data_types(df, llm)
+    # df = fix_data_types(df, llm)
     df = handle_missing_data(df)
     df = remove_duplicates(df)
     df = handle_outliers(df)

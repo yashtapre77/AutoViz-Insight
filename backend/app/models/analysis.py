@@ -17,6 +17,7 @@ class Analysis_Requirement(Base):
     # relationships
     user = relationship("User", back_populates="analysis_requirements")
     analysis_results = relationship("Analysis_Result", back_populates="requirement", cascade="all, delete-orphan")
+    analysis_dashboards = relationship("Analysis_Dashboard", back_populates="requirement", cascade="all, delete-orphan")
 
 
 class Analysis_Result(Base):
@@ -34,3 +35,18 @@ class Analysis_Result(Base):
     # relationships
     user = relationship("User", back_populates="analysis_results")
     requirement = relationship("Analysis_Requirement", back_populates="analysis_results")
+
+
+class Analysis_Dashboard(Base):
+    __tablename__ = "Analysis_Dashboard"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
+    requirement_id = Column(Integer, ForeignKey("Analysis_Requirement.id", ondelete="CASCADE"), nullable=False)
+
+    dashboard_code = Column(String, nullable=True)  # will hold the generated dashboard code
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    # relationships
+    user = relationship("User", back_populates="analysis_dashboards")
+    requirement = relationship("Analysis_Requirement", back_populates="analysis_dashboards")
