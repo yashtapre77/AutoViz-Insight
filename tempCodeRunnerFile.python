@@ -1,8 +1,0 @@
-
-columns = ""
-df = {"col1": 1, "col2": 1.0}
-cols = ["col1", "col2"]
-for col in cols:
-    columns += f"{col} ({type(str(df[col]))}),"
-
-print(columns)  # Output: col1 (int64),col2 (object),ty

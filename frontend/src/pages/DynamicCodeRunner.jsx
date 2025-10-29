@@ -1,130 +1,77 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { ClipLoader } from "react-spinners";
+import * as Recharts from "recharts";
+import * as Lucide from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-/**
- * DynamicCodeRunner Component
- *
- * Props:
- *  - token: string (Bearer token for auth)
- *  - requirements: string (analysis description)
- *  - file: File object (dataset to upload)
- */
+// ✅ make React, Recharts, Lucide available globally
+window.React = React;
+window.Recharts = Recharts;
+window.Lucide = Lucide;
 
-const DynamicCodeRunner = ({ token, requirements, file }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [RenderedComponent, setRenderedComponent] = useState(null);
+export default function DynamicDashboard({ token, requirements, file }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [Component, setComponent] = useState(null);
+
+  const fetchDashboard = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("requirements", requirements);
+      if (file) formData.append("file", file);
+
+      const { data } = await axios.post(
+        "http://127.0.0.1:8000/api/analysis/dashboard",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!data.dashboard_code) throw new Error("Missing dashboard_code");
+
+      // convert returned JS to a blob module
+      const blob = new Blob([data.dashboard_code], {
+        type: "application/javascript",
+      });
+      const url = URL.createObjectURL(blob);
+
+      // dynamically import as a module
+      const module = await import(/* @vite-ignore */ url);
+      URL.revokeObjectURL(url);
+
+      if (!module.default) throw new Error("No default export found");
+      setComponent(() => module.default);
+    } catch (err) {
+      console.error(err.response?.data ?? err);
+      setError(err.response?.data?.detail ?? err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAndLoadComponent = async () => {
-      try {
-        setIsLoading(true);
-        setError("");
+    if (file || !requirements.includes("file_required")) fetchDashboard();
+  }, [file]);
 
-        const formData = new FormData();
-        formData.append("requirements", requirements);
-        formData.append("file", file);
-
-        const response = await axios.post(
-          "http://127.0.0.1:8000/api/analysis/analyze",
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-
-        let rawCode = response.data?.dashboard_code || "";
-
-        // 🧹 Clean output just in case the LLM adds markdown or escaped text
-        const cleanedCode = rawCode
-          .replace(/^```[a-z]*\n?/, "")
-          .replace(/```$/, "")
-          .replace(/\\n/g, "\n")
-          .replace(/\\"/g, '"')
-          .replace(/\\r/g, "")
-          .trim();
-
-        // 🧩 Create a new JS file blob (works like a local file)
-        console.log("Cleaned Code:", cleanedCode);
-        const blob = new Blob([cleanedCode], { type: "text/javascript" });
-        const blobUrl = URL.createObjectURL(blob);
-
-        // 🧠 Dynamically import it as a module
-        const module = await import(/* @vite-ignore */ blobUrl);
-
-        // The backend-generated file should have a default export
-        if (module && module.default) {
-          setRenderedComponent(() => module.default);
-        } else {
-          throw new Error("Generated module has no default export.");
-        }
-
-        // Cleanup blob when unmounted
-        return () => URL.revokeObjectURL(blobUrl);
-
-      } catch (err) {
-        console.error("Error loading dashboard:", err);
-        setError("Failed to load dashboard component. See console for details.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (file && requirements && token) {
-      fetchAndLoadComponent();
-    } else {
-      setError("Missing required props: token, requirements, or file.");
-      setIsLoading(false);
-    }
-  }, [token, requirements, file]);
-
-  if (isLoading) {
+  if (loading)
     return (
-      <div
-        style={{
-          display: "flex",
-          height: "100vh",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-        }}
-      >
-        <ClipLoader color="#007bff" size={50} />
-        <p style={{ marginTop: "10px", fontSize: "18px", color: "#555" }}>
-          Analyzing your data...
-        </p>
+      <div className="flex items-center gap-2 text-indigo-600">
+        <Loader2 className="animate-spin" /> Loading dashboard...
       </div>
     );
-  }
 
-  if (error) {
-    return (
-      <div
-        style={{
-          padding: "20px",
-          color: "red",
-          fontSize: "16px",
-          textAlign: "center",
-        }}
-      >
-        {error}
-      </div>
-    );
-  }
+  if (error) return <div className="text-red-600">Error: {error}</div>;
+  if (!Component) return <div>No component loaded.</div>;
 
   return (
-    <div style={{ padding: "20px" }}>
-      {RenderedComponent ? (
-        <RenderedComponent />
-      ) : (
-        <p>No dashboard component found.</p>
-      )}
+    <div className="p-4 border rounded-lg shadow-md bg-white">
+      <Component />
     </div>
   );
-};
-
-export default DynamicCodeRunner;
+}

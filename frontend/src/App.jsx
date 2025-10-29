@@ -6,7 +6,7 @@ import Analysis from './pages/Analysis';
 import AutoVizDashboard from './pages/temp';
 import DynamicCodeRunner from "./pages/DynamicCodeRunner";
 // import sampleFile from './assets/1_dummy_sales.csv';
-import sampleFile from './assets/transfer_history.csv';
+import sampleFile from './assets/1_dummy_sales.csv';
 import { useEffect, useState } from 'react';
 
 const loadFile = async () => {
@@ -18,7 +18,7 @@ const loadFile = async () => {
 
 function App() {
 
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2MDc4NDE1MSwiZXhwIjoxNzYwNzg1OTUxfQ._SiwV7oOUlYVHYlWRA1Pgh5dv0Ck9vw5oW0BCUullKk";
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2MTcxMzk5NywiZXhwIjoxNzYxNzE1Nzk3fQ.zmE17RB1uT4T8M1CZwci17LQ4QlJ4no2BlMDQNKw07c";
   const requirements = "I want to analyze how sales performance varies across regions and products, and see if discounts affect profitability.";
 
   const [file, setFile] = useState(null);
