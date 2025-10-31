@@ -18,7 +18,7 @@ const loadFile = async () => {
 
 function App() {
 
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2MTcxMzk5NywiZXhwIjoxNzYxNzE1Nzk3fQ.zmE17RB1uT4T8M1CZwci17LQ4QlJ4no2BlMDQNKw07c";
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2MTgzNzc0OSwiZXhwIjoxNzYxODM5NTQ5fQ.8G2VFk7LDWwG1E5sx2wghMQf_7PjkJy9s9k5rcmtz2M";
   const requirements = "I want to analyze how sales performance varies across regions and products, and see if discounts affect profitability.";
 
   const [file, setFile] = useState(null);
