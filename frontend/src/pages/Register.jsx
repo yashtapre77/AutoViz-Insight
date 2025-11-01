@@ -1,32 +1,84 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
-import { Label } from "../components/ui/label"
-import { Eye, EyeOff, User, Mail, Lock, Sparkles } from "lucide-react"
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Label } from "../components/ui/label";
+import { Eye, EyeOff, User, Mail, Lock, Sparkles } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import axios from "axios"
 
 function Register() {
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: "",
     email: "",
     password: "",
-  })
-  const [isLoading, setIsLoading] = useState(false)
+    full_name: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsLoading(false)
-    console.log("Registration data:", formData)
-  }
+    const response = await axios.post(
+      "http://127.0.0.1:8000/api/auth/register",
+      formData,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = await response.data;
+
+    setIsLoading(false);
+    if (response.status === 201) {
+      // Handle successful registration
+      console.log("Registration successful:", data);
+      // You might want to redirect the user to the login page or dashboard here
+      const fdata = new FormData();
+      fdata.append("username", formData.email);
+      fdata.append("password", formData.password);
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/auth/login",
+        fdata,
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded", // ✅ Important
+          },
+        }
+      );
+      const loginData = await response.data;
+      if (response.status === 200) {
+        // Handle successful login
+        console.log("Login successful:", loginData);
+        login({ token: loginData.access_token });
+        navigate("/analysis");
+      } else {
+        // Handle login error
+        console.error("Login failed:", response.data);
+      }
+    } else {
+      // Handle registration error
+      console.error("Registration failed:", response.data);
+    }
+
+    console.log("Registration data:", formData);
+  };
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-card to-muted flex items-center justify-center p-4">
@@ -49,7 +101,10 @@ function Register() {
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-sm font-medium text-foreground">
+                <Label
+                  htmlFor="fullName"
+                  className="text-sm font-medium text-foreground"
+                >
                   Full Name
                 </Label>
                 <div className="relative group">
@@ -59,7 +114,9 @@ function Register() {
                     type="text"
                     placeholder="Enter your full name"
                     value={formData.fullName}
-                    onChange={(e) => handleInputChange("fullName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("fullName", e.target.value)
+                    }
                     className="pl-10 h-12 bg-input border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
                     required
                   />
@@ -67,7 +124,10 @@ function Register() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-foreground"
+                >
                   Email Address
                 </Label>
                 <div className="relative group">
@@ -85,7 +145,10 @@ function Register() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                <Label
+                  htmlFor="password"
+                  className="text-sm font-medium text-foreground"
+                >
                   Password
                 </Label>
                 <div className="relative group">
@@ -95,7 +158,9 @@ function Register() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a strong password"
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
                     className="pl-10 pr-10 h-12 bg-input border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
                     required
                   />
@@ -104,7 +169,11 @@ function Register() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -140,7 +209,7 @@ function Register() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
 
-export default Register
+export default Register;

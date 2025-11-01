@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import DynamicRenderer from "../components/DynamicRenderer";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-export default function DynamicDashboard({ token, requirements, file }) {
+export default function DynamicDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analysisResult, setAnalysisResult] = useState("");
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const { token, requirements, file } = location.state || {};
 
   const handleBack = () => {
-    navigate("/your-target-route"); // ✅ replace with your desired route
+    navigate("/analysis"); // ✅ replace with your desired route
   };
 
   const handlePrint = () => {

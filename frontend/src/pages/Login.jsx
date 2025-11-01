@@ -3,8 +3,10 @@ import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Label } from "../components/ui/label"
-import { Link } from 'react-router-dom'
+import { Form, Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Mail, Lock, LogIn } from "lucide-react"
+import { useAuth } from "../context/AuthContext";
+import axios from "axios"
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false)
@@ -14,13 +16,36 @@ function Login() {
   })
   const [isLoading, setIsLoading] = useState(false)
 
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    const fdata = new FormData();
+    fdata.append("username", formData.email);
+    fdata.append("password", formData.password);
+    const response = await axios.post("http://127.0.0.1:8000/api/auth/login", fdata,
+      {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded", // ✅ Important
+          },
+        }
+    );
+    const data = await response.data;
+    
     setIsLoading(false)
-    console.log("Login data:", formData)
+    if (response.status === 200) {
+      // Handle successful login
+      console.log("Login successful:", data);
+      login({ token: data.access_token });
+      navigate("/analysis");
+      
+    } else {
+      // Handle login error
+      console.error("Login failed:", response.data);
+    }
   }
 
   const handleInputChange = (field, value) => {

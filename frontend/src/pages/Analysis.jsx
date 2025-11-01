@@ -12,6 +12,8 @@ import {
   Loader,
   X
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Analysis = ({ onBack }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -19,6 +21,9 @@ const Analysis = ({ onBack }) => {
   const [query, setQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+
+  const navigate = useNavigate();
+  const {user} = useAuth();
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -75,6 +80,12 @@ const Analysis = ({ onBack }) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+
+  const handleViewDashboard = () => {
+    // Navigate to dashboard page
+    navigate('/dashboard', { state: { token: user.token, requirements: query, file: uploadedFile } });
+  }
+
   if (analysisComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 overflow-hidden">
@@ -109,7 +120,7 @@ const Analysis = ({ onBack }) => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="px-8 py-3 bg-gradient-to-r from-teal-700 to-teal-600 text-white font-semibold rounded-lg hover:from-teal-800 hover:to-teal-700 transition-all duration-200">
+            <button className="px-8 py-3 bg-gradient-to-r from-teal-700 to-teal-600 text-white font-semibold rounded-lg hover:from-teal-800 hover:to-teal-700 transition-all duration-200" onClick={handleViewDashboard}>
               View Dashboard
             </button>
             <button className="px-8 py-3 bg-white text-teal-700 font-semibold rounded-lg border border-teal-700 hover:bg-teal-50 transition-all duration-200">
