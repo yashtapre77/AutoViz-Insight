@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Loader2 } from "lucide-react"; // optional spinner icon
 import DynamicRenderer from "../components/DynamicRenderer";
+import { useNavigate } from "react-router-dom";
 
 export default function DynamicDashboard({ token, requirements, file }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analysisResult, setAnalysisResult] = useState("");
+
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate("/your-target-route"); // ✅ replace with your desired route
+  };
+
+  const handlePrint = () => {
+    window.print(); // ✅ prints the full current page
+  };
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -35,6 +45,7 @@ export default function DynamicDashboard({ token, requirements, file }) {
 
         // ✅ Store code in state
         setAnalysisResult(dashboardCode);
+        
       } catch (err) {
         console.error("Error fetching dashboard:", err.response?.data ?? err);
         // setError(err.response?.data?.detail ?? err.message);
@@ -47,9 +58,12 @@ export default function DynamicDashboard({ token, requirements, file }) {
   }, [file]);
 
   if (loading)
-    return (
-      <div className="flex items-center gap-2 text-indigo-600">
-        <Loader2 className="animate-spin" /> Loading dashboard...
+     return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-lg">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <p className="mt-4 text-lg text-gray-700">Loading dashboard data...</p>
+        </div>
       </div>
     );
 
@@ -62,8 +76,9 @@ export default function DynamicDashboard({ token, requirements, file }) {
 
   // ✅ Render the dashboard dynamically
   return (
-    <div className="p-4 border rounded-lg shadow-md bg-white">
-      <DynamicRenderer code={analysisResult} />
+    
+    <div className="">
+      <DynamicRenderer code={analysisResult} isReady={true} />
 
     </div>
   );

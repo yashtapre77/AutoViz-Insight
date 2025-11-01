@@ -8,6 +8,7 @@ import DynamicCodeRunner from "./pages/DynamicCodeRunner";
 // import sampleFile from './assets/1_dummy_sales.csv';
 import sampleFile from './assets/1_dummy_sales.csv';
 import { useEffect, useState } from 'react';
+import Temp from './components/DynamicRenderer'
 
 const loadFile = async () => {
   const response = await fetch(sampleFile);
@@ -18,7 +19,7 @@ const loadFile = async () => {
 
 function App() {
 
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2MTgzNzc0OSwiZXhwIjoxNzYxODM5NTQ5fQ.8G2VFk7LDWwG1E5sx2wghMQf_7PjkJy9s9k5rcmtz2M";
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2MTk2MDI0OCwiZXhwIjoxNzYxOTYyMDQ4fQ.zZvh7_u50H-hC8IfxIF2eWdLeHwJ6REaqPOiG-dV6GI";
   const requirements = "I want to analyze how sales performance varies across regions and products, and see if discounts affect profitability.";
 
   const [file, setFile] = useState(null);
@@ -31,6 +32,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<AutoVizDashboard/>} />
+      <Route path="/temp" element={<Temp />} />
       <Route path="/dashboard" element={<DynamicCodeRunner
        token={token}
               requirements={requirements}

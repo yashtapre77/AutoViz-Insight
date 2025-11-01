@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@babel/standalone": "^7.28.5",
+    "@codesandbox/sandpack-react": "^2.20.0",
+    "@codesandbox/sandpack-themes": "^2.0.21",
     "@react-three/drei": "^10.7.4",
     "@react-three/fiber": "^9.3.0",
     "axios": "^1.12.2",
