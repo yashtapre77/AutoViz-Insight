@@ -9,6 +9,9 @@ import DynamicCodeRunner from "./pages/DynamicCodeRunner";
 import sampleFile from './assets/1_dummy_sales.csv';
 import { useEffect, useState } from 'react';
 import Temp from './components/DynamicRenderer'
+import Home from './pages/HomePage';
+import History from './pages/HistoryPage';
+import Profile from './pages/ProfilePage';
 
 function App() {
 
@@ -20,6 +23,9 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path='/analysis' element={<Analysis />} />
       <Route path="/dashboard" element={<DynamicCodeRunner />} />
+      <Route path="/home" element={<Home />} />
+      <Route path="/history" element={<History />} />
+      <Route path="/profile" element={<Profile />} />
        {/* <Route path="/temp" element={<Temp />} /> */}
        {/* <Route path="/" element={<AutoVizDashboard/>} /> */}
     </Routes>
